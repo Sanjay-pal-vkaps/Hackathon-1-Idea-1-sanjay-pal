@@ -1,0 +1,310 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { FloorPlanCanvas } from "@/components/floor-plan/floor-plan-canvas";
+import { FloorPlanMobileList } from "@/components/floor-plan/floor-plan-mobile-list";
+import { TableDetailPanel } from "@/components/floor-plan/table-detail-panel";
+import { useStaffPermissions } from "@/components/staff/use-staff-permissions";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Alert } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import {
+  ALL_TABLE_STATUSES,
+  TABLE_STATUS_LABELS,
+} from "@/lib/constants/table-status";
+import type { FloorMeta, RestaurantTable, TableStatus } from "@/lib/domain/types";
+import { applyReferenceLayoutToTables } from "@/lib/constants/floor-plan-reference-layout";
+import {
+  clearFloorLayoutStorage,
+  hasStoredFloorLayout,
+  mergeStoredLayouts,
+  writeFloorLayoutToStorage,
+} from "@/lib/mock/floor-plan-layout-storage";
+import { getMockRepositories } from "@/lib/mock/repositories";
+import { cn } from "@/lib/utils/cn";
+
+type MockNotice = { message: string; variant: "info" | "success" } | null;
+
+const ZOOM_MIN = 0.85;
+const ZOOM_MAX = 1.35;
+const ZOOM_STEP = 0.1;
+
+type StatusFilter = "all" | TableStatus;
+
+export function FloorPlanWorkspace({
+  defaultTableId = "table-003",
+}: {
+  defaultTableId?: string;
+}) {
+  const { can: staffCan } = useStaffPermissions();
+  const [floors, setFloors] = useState<FloorMeta[]>([]);
+  const [floorId, setFloorId] = useState<string>("");
+  const [tables, setTables] = useState<RestaurantTable[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(defaultTableId);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [editMode, setEditMode] = useState(false);
+  const [zoom, setZoom] = useState(1);
+  const [notice, setNotice] = useState<MockNotice>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  const canEditLayout = staffCan("edit_floor_layout");
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+
+  const loadFloor = useCallback(
+    async (id: string, selectId?: string) => {
+      const repos = getMockRepositories();
+      const [floorList, floorTables] = await Promise.all([
+        repos.tables.listFloors(),
+        repos.tables.listTables(id),
+      ]);
+      const merged = applyReferenceLayoutToTables(
+        hasStoredFloorLayout(id) ? mergeStoredLayouts(floorTables, id) : floorTables,
+      );
+      setFloors(floorList);
+      setFloorId(id);
+      setTables(merged);
+      const pick =
+        selectId && merged.some((t) => t.id === selectId)
+          ? selectId
+          : (merged.find((t) => t.id === defaultTableId)?.id ?? merged[0]?.id ?? null);
+      setSelectedId(pick);
+      setSheetOpen(false);
+    },
+    [defaultTableId],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const repos = getMockRepositories();
+      const floorList = await repos.tables.listFloors();
+      if (cancelled || floorList.length === 0) return;
+      await loadFloor(floorList[0].id, defaultTableId);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [defaultTableId, loadFloor]);
+
+  const visibleTables = useMemo(() => {
+    if (statusFilter === "all") return tables;
+    return tables.filter((t) => t.status === statusFilter);
+  }, [tables, statusFilter]);
+
+  const selectedTable = useMemo(
+    () => tables.find((t) => t.id === selectedId) ?? null,
+    [tables, selectedId],
+  );
+
+  const handleSelect = (id: string) => {
+    setSelectedId(id);
+    if (isMobile) setSheetOpen(true);
+  };
+
+  const handleLayoutChange = (id: string, layout: RestaurantTable["layout"]) => {
+    setTables((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, layout: { ...layout } } : t)),
+    );
+  };
+
+  const showNotice = (message: string, variant: "info" | "success" = "info") => {
+    setNotice({ message, variant });
+    window.setTimeout(() => setNotice(null), 5000);
+  };
+
+  const handleSaveLayout = async () => {
+    if (!floorId) return;
+    const repos = getMockRepositories();
+    await Promise.all(
+      tables.map((t) => repos.tables.updateTableLayout(t.id, t.layout)),
+    );
+    writeFloorLayoutToStorage(floorId, tables);
+    showNotice(
+      "Mock save — layout kept in memory and localStorage only, not on server.",
+      "success",
+    );
+    setEditMode(false);
+  };
+
+  const handleResetLayout = async () => {
+    if (!floorId) return;
+    const repos = getMockRepositories();
+    await repos.tables.resetDemoLayout(floorId);
+    clearFloorLayoutStorage(floorId);
+    const floorTables = await repos.tables.listTables(floorId);
+    setTables(applyReferenceLayoutToTables(floorTables));
+    setSelectedId(defaultTableId);
+    showNotice("Reference floor layout restored.");
+    setEditMode(false);
+  };
+
+  const filterPills: { key: StatusFilter; label: string }[] = [
+    { key: "all", label: "All" },
+    ...ALL_TABLE_STATUSES.map((status) => ({
+      key: status as StatusFilter,
+      label: TABLE_STATUS_LABELS[status],
+    })),
+  ];
+
+  return (
+    <div className="space-y-4">
+      {notice ? (
+        <Alert variant={notice.variant === "success" ? "success" : "info"}>
+          {notice.message}
+        </Alert>
+      ) : null}
+
+      {editMode ? (
+        <Alert variant="info">
+          Drag table markers to reposition. Save persists to mock storage and
+          localStorage only.
+        </Alert>
+      ) : null}
+
+      <div className="flex flex-col gap-3 rounded-xl border border-border-muted bg-white p-3 shadow-sm lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="text-sm text-charcoal/60" htmlFor="service-shift">
+            Service
+          </label>
+          <select
+            id="service-shift"
+            className="h-9 rounded-lg border border-border-muted bg-warm-ivory px-3 text-sm font-medium text-charcoal"
+            defaultValue="lunch"
+          >
+            <option value="lunch">Lunch 13:00–16:00</option>
+            <option value="dinner">Dinner 19:00–23:00</option>
+          </select>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {canEditLayout ? (
+            editMode ? (
+              <>
+                <Button variant="outline" size="sm" onClick={() => setEditMode(false)}>
+                  View
+                </Button>
+                <Button variant="secondary" size="sm" onClick={handleSaveLayout}>
+                  Save layout
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleResetLayout}>
+                  Reset
+                </Button>
+              </>
+            ) : (
+              <Button variant="ghost" size="sm" onClick={() => setEditMode(true)}>
+                Edit layout
+              </Button>
+            )
+          ) : null}
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-1.5 rounded-xl bg-surface-muted/50 p-1.5">
+        {filterPills.map((pill) => {
+          const active = statusFilter === pill.key;
+          return (
+            <button
+              key={pill.key}
+              type="button"
+              onClick={() => setStatusFilter(pill.key)}
+              className={cn(
+                "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors sm:text-sm",
+                active
+                  ? "bg-white text-charcoal shadow-sm ring-1 ring-border-muted"
+                  : "text-charcoal/55 hover:text-charcoal",
+              )}
+            >
+              {pill.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {visibleTables.length === 0 ? (
+        <EmptyState
+          title="No tables match this filter"
+          description="Try another status or reset filters to see the demo floor."
+          action={
+            <Button variant="outline" size="sm" onClick={() => setStatusFilter("all")}>
+              Show all tables
+            </Button>
+          }
+        />
+      ) : null}
+
+      <div className="grid gap-4 xl:grid-cols-[1fr_minmax(300px,340px)]">
+        <div className="min-w-0">
+          {visibleTables.length === 0 ? null : isMobile ? (
+            <FloorPlanMobileList
+              tables={visibleTables}
+              selectedId={selectedId}
+              onSelect={handleSelect}
+            />
+          ) : (
+            <FloorPlanCanvas
+              tables={visibleTables}
+              selectedId={selectedId}
+              editMode={editMode && canEditLayout}
+              zoom={zoom}
+              floors={floors}
+              floorId={floorId}
+              onFloorChange={(id) => void loadFloor(id, selectedId ?? undefined)}
+              onZoomIn={() => setZoom((z) => Math.min(ZOOM_MAX, z + ZOOM_STEP))}
+              onZoomOut={() => setZoom((z) => Math.max(ZOOM_MIN, z - ZOOM_STEP))}
+              onSelect={handleSelect}
+              onLayoutChange={handleLayoutChange}
+            />
+          )}
+        </div>
+
+        {!isMobile ? (
+          <div className="hidden xl:block">
+            <TableDetailPanel
+              table={selectedTable}
+              canUpdateStatus={staffCan("update_table_status")}
+            />
+          </div>
+        ) : null}
+      </div>
+
+      {isMobile && sheetOpen && selectedTable ? (
+        <>
+          <button
+            type="button"
+            className="fixed inset-0 z-30 bg-charcoal/40"
+            aria-label="Close table details"
+            onClick={() => setSheetOpen(false)}
+          />
+          <div className="fixed inset-x-0 bottom-0 z-40 max-h-[85vh] overflow-auto rounded-t-xl border-t border-border-muted bg-white shadow-lg">
+            <TableDetailPanel
+              table={selectedTable}
+              compact
+              canUpdateStatus={staffCan("update_table_status")}
+              onClose={() => setSheetOpen(false)}
+            />
+          </div>
+        </>
+      ) : null}
+
+      {!isMobile ? (
+        <div className="xl:hidden">
+          {selectedTable ? (
+            <TableDetailPanel
+              table={selectedTable}
+              canUpdateStatus={staffCan("update_table_status")}
+              onClose={() => setSelectedId(null)}
+            />
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
