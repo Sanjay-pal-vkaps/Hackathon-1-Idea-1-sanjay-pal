@@ -1,0 +1,17 @@
+node_modules/
+.next/
+out/
+dist/
+build/
+
+.env
+.env.*
+!.env.example
+
+coverage/
+*.log
+.DS_Store
+# Local-only project references
+/UI_REFERENCES/
+/Iturrieta_Restaurant_Booking_System_Cursor_Brief.docx
+/PROJECT_BRIEF.md
