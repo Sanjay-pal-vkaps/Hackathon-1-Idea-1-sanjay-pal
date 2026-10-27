@@ -1,12 +1,13 @@
 import type { Reservation } from "@/lib/domain/types";
+import { getDemoServiceDate } from "@/lib/seed/demo-service-date";
 
 const iso = (date: string, time: string) =>
   new Date(`${date}T${time}:00+02:00`).toISOString();
 
 /** Demo reservations covering every status at least once */
-export function createDemoReservations(): Reservation[] {
-  const date = "2026-10-16";
-  const now = new Date().toISOString();
+export function createDemoReservations(reference = new Date()): Reservation[] {
+  const date = getDemoServiceDate(reference);
+  const now = reference.toISOString();
 
   const rows: Omit<Reservation, "createdAt" | "updatedAt">[] = [
     {

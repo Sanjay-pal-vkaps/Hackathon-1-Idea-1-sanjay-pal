@@ -17,13 +17,14 @@ import type {
 } from "@/lib/domain/types";
 import { useStaffDate } from "@/components/staff/staff-workspace";
 import { Select } from "@/components/ui/select";
-import { getMockRepositories } from "@/lib/mock/repositories";
+import { getRepositories } from "@/lib/repositories";
 
 type TableDetailPanelProps = {
   table: RestaurantTable | null;
   onClose?: () => void;
   compact?: boolean;
   canUpdateStatus?: boolean;
+  onTableStatusChange?: (table: RestaurantTable) => void;
 };
 
 function initials(name: string) {
@@ -56,6 +57,7 @@ export function TableDetailPanel({
   onClose,
   compact = false,
   canUpdateStatus = false,
+  onTableStatusChange,
 }: TableDetailPanelProps) {
   const router = useRouter();
   const { selectedDate } = useStaffDate();
@@ -67,7 +69,7 @@ export function TableDetailPanel({
     if (!tableId) return;
     let cancelled = false;
     (async () => {
-      const repos = getMockRepositories();
+      const repos = getRepositories();
       const [rows, guestList] = await Promise.all([
         repos.reservations.listForTable(tableId, selectedDate),
         repos.customers.list(),
@@ -150,13 +152,14 @@ export function TableDetailPanel({
                     defaultValue={table.status}
                     onChange={async (e) => {
                       const next = e.target.value as TableStatus;
-                      await getMockRepositories().tables.updateTableStatus(
+                      const updated = await getRepositories().tables.updateTableStatus(
                         table.id,
                         next,
                       );
-                      await getMockRepositories().activity.append({
+                      onTableStatusChange?.(updated);
+                      await getRepositories().activity.append({
                         type: "table_status_changed",
-                        message: `Table ${table.number} → ${TABLE_STATUS_LABELS[next]} (demo)`,
+                        message: `Table ${table.number} → ${TABLE_STATUS_LABELS[next]}`,
                         tableId: table.id,
                       });
                     }}
@@ -203,7 +206,7 @@ export function TableDetailPanel({
             </div>
           </div>
         ) : (
-          <p className="px-5 text-sm text-charcoal/60">No current reservation (demo).</p>
+          <p className="px-5 text-sm text-charcoal/60">No current reservation for this date.</p>
         )}
 
         <div className="border-t border-border-muted px-5 pb-5 pt-2">

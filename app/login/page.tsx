@@ -17,7 +17,7 @@ export default function LoginPage() {
           <LoginForm />
         </Suspense>
         <Link href="/" className="text-sm text-apple-copper hover:underline">
-          Back to U1 foundation home
+          Back to home
         </Link>
       </div>
     </StaffAuthProvider>

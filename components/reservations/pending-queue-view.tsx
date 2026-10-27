@@ -6,11 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { PageHeader } from "@/components/ui/page-header";
-import { MockNotice } from "@/components/reservations/mock-notice";
-import { useReservationActions } from "@/components/reservations/use-reservation-actions";
+import { ActionNotice } from "@/components/reservations/action-notice";
 import type { Customer, Reservation } from "@/lib/domain/types";
 import { useStaffPermissions } from "@/components/staff/use-staff-permissions";
-import { getMockRepositories } from "@/lib/mock/repositories";
+import { getRepositories } from "@/lib/repositories";
 import {
   formatReservationDate,
   formatReservationTimeRange,
@@ -24,10 +23,8 @@ export function PendingQueueView() {
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const { updateStatus } = useReservationActions(setNotice);
-
   const load = useCallback(async () => {
-    const repos = getMockRepositories();
+    const repos = getRepositories();
     const [rows, guestList] = await Promise.all([
       repos.reservations.listPending(),
       repos.customers.list(),
@@ -48,17 +45,37 @@ export function PendingQueueView() {
   }, [load]);
 
   async function approve(id: string) {
-    await updateStatus(
-      pending.find((p) => p.id === id)!,
-      "confirmed",
-    );
+    const res = await fetch(`/api/staff/reservations/${id}/approve`, {
+      method: "POST",
+    });
+    const body = (await res.json().catch(() => ({}))) as {
+      error?: string;
+      tableId?: string;
+    };
     setConfirmId(null);
+    if (!res.ok) {
+      setNotice(body.error ?? "Could not approve — check availability.");
+      return;
+    }
+    setNotice(
+      body.tableId
+        ? `Confirmed and assigned table ${body.tableId}. Guest emailed when configured.`
+        : "Reservation confirmed. Guest emailed when configured.",
+    );
     await load();
   }
 
   async function reject(id: string) {
-    await updateStatus(pending.find((p) => p.id === id)!, "rejected");
+    const res = await fetch(`/api/staff/reservations/${id}/reject`, {
+      method: "POST",
+    });
+    const body = (await res.json().catch(() => ({}))) as { error?: string };
     setRejectId(null);
+    if (!res.ok) {
+      setNotice(body.error ?? "Could not reject this request.");
+      return;
+    }
+    setNotice("Request rejected — guest notified by email when configured.");
     await load();
   }
 
@@ -66,7 +83,7 @@ export function PendingQueueView() {
     <div className="space-y-6">
       <PageHeader
         title="Pending approval"
-        description="Requests awaiting manager review · availability re-check is copy-only in Phase 1"
+        description="Requests awaiting manager review · approval re-checks table availability"
         actions={
           <Button variant="outline" onClick={() => router.push("/reservations")}>
             All reservations
@@ -77,7 +94,7 @@ export function PendingQueueView() {
       <ul className="space-y-3">
         {pending.length === 0 ? (
           <li className="rounded-xl border border-dashed border-border-muted bg-white p-8 text-center text-sm text-charcoal/60">
-            No pending requests in mock data.
+            No pending requests right now.
           </li>
         ) : (
           pending.map((row) => {
@@ -137,14 +154,14 @@ export function PendingQueueView() {
         open={confirmId !== null}
         onOpenChange={(open) => !open && setConfirmId(null)}
         title="Approve reservation?"
-        description="Mock flow: in Phase 2 the server would re-check table availability and buffers before confirming."
+        description="The server will re-check table availability and cleaning buffer before confirming."
         footer={
           <>
             <Button variant="outline" onClick={() => setConfirmId(null)}>
               Cancel
             </Button>
             <Button onClick={() => confirmId && void approve(confirmId)}>
-              Approve (mock)
+              Approve
             </Button>
           </>
         }
@@ -154,7 +171,7 @@ export function PendingQueueView() {
         open={rejectId !== null}
         onOpenChange={(open) => !open && setRejectId(null)}
         title="Reject request?"
-        description="Guest would receive a notification when messaging is configured."
+        description="The guest will see a rejected status and receive an email when Resend is configured."
         footer={
           <>
             <Button variant="outline" onClick={() => setRejectId(null)}>
@@ -164,13 +181,13 @@ export function PendingQueueView() {
               variant="outline"
               onClick={() => rejectId && void reject(rejectId)}
             >
-              Reject (mock)
+              Reject
             </Button>
           </>
         }
       />
 
-      <MockNotice message={notice} onDismiss={() => setNotice(null)} />
+      <ActionNotice message={notice} onDismiss={() => setNotice(null)} />
     </div>
   );
 }

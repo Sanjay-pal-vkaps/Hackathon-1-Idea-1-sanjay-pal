@@ -24,3 +24,12 @@ body {
   color: var(--charcoal);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
+
+/* Native <dialog> — center in viewport (showModal) */
+dialog[open] {
+  margin: auto;
+}
+
+dialog::backdrop {
+  background: rgb(37 43 37 / 0.45);
+}

@@ -39,7 +39,11 @@ export function Dialog({
   return (
     <dialog
       ref={dialogRef}
-      className="w-[min(100%-2rem,32rem)] rounded-xl border border-border-muted bg-warm-ivory p-0 text-charcoal shadow-lg backdrop:bg-charcoal/40"
+      className={cn(
+        "fixed top-1/2 left-1/2 max-h-[min(90vh,100%)] w-[min(calc(100vw-2rem),32rem)] -translate-x-1/2 -translate-y-1/2",
+        "m-0 rounded-xl border border-border-muted bg-warm-ivory p-0 text-charcoal shadow-xl",
+        "backdrop:bg-charcoal/45",
+      )}
       onClose={() => onOpenChange(false)}
     >
       <div className="border-b border-border-muted px-5 py-4">

@@ -24,8 +24,7 @@ import {
   RESERVATION_STATUS_LABELS,
 } from "@/lib/constants/reservation-ui";
 import type { Customer, Reservation, ReservationStatus } from "@/lib/domain/types";
-import { withMockLoad, writeSimulateError } from "@/lib/mock/dev-ui-store";
-import { getMockRepositories } from "@/lib/mock/repositories";
+import { getRepositories } from "@/lib/repositories";
 import { useStaffPermissions } from "@/components/staff/use-staff-permissions";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -51,21 +50,18 @@ export function ReservationsListView() {
     setLoading(true);
     setLoadError(null);
     try {
-      const [list, guestList] = await withMockLoad(async () => {
-        const repos = getMockRepositories();
-        return Promise.all([
-          repos.reservations.list({
-            date: selectedDate,
-            status: status || undefined,
-            source: source || undefined,
-            search: search || undefined,
-          }),
-          repos.customers.list(),
-        ]);
-      });
+      const repos = getRepositories();
+      const [list, guestList] = await Promise.all([
+        repos.reservations.list({
+          date: selectedDate,
+          status: status || undefined,
+          source: source || undefined,
+          search: search || undefined,
+        }),
+        repos.customers.list(),
+      ]);
       setRows(list);
       setCustomers(new Map(guestList.map((c) => [c.id, c])));
-      writeSimulateError(false);
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Load failed");
     } finally {
@@ -102,7 +98,7 @@ export function ReservationsListView() {
     <div className="space-y-6">
       <PageHeader
         title="Reservations"
-        description={`Operations for ${formatReservationDate(`${selectedDate}T12:00:00+02:00`)} · mock data`}
+        description={`Live reservations for ${formatReservationDate(`${selectedDate}T12:00:00+02:00`)}`}
         actions={
           <>
             <Button

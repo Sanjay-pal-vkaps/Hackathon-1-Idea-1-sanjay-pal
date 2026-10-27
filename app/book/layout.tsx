@@ -9,7 +9,7 @@ export default function PublicBookLayout({ children }: { children: ReactNode }) 
       <header className="border-b border-border-muted bg-warm-ivory/95">
         <div className="mx-auto flex h-14 max-w-lg items-center px-4 md:max-w-2xl">
           <Link
-            href="/book"
+            href="/"
             className="text-sm font-semibold tracking-wide text-forest-green"
           >
             Iturrieta
@@ -25,7 +25,7 @@ export default function PublicBookLayout({ children }: { children: ReactNode }) 
           Sign in
         </Link>
         <Link href="/book/register" className="text-apple-copper hover:underline">
-          Register (mock)
+          Register
         </Link>
         <Link href="/book/account" className="text-charcoal/70 hover:underline">
           My profile

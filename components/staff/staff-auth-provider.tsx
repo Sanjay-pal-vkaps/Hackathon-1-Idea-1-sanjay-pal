@@ -6,54 +6,87 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useSyncExternalStore,
+  useState,
   type ReactNode,
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import type { MockStaffSession } from "@/lib/mock/staff-session";
-import {
-  clearMockStaffSession,
-  readMockStaffSession,
-  subscribeMockStaffSession,
-  writeMockStaffSession,
-} from "@/lib/mock/staff-session";
+import type { StaffProfile } from "@/lib/domain/types";
+import { loadStaffProfileForUser } from "@/lib/staff/load-staff-profile";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type StaffAuthContextValue = {
-  session: MockStaffSession | null;
-  signIn: (session: MockStaffSession) => void;
-  signOut: () => void;
+  session: StaffProfile | null;
+  loading: boolean;
+  authError: string | null;
+  signOut: () => Promise<void>;
+  clearAuthError: () => void;
 };
 
 const StaffAuthContext = createContext<StaffAuthContextValue | null>(null);
 
-function useMockStaffSessionSnapshot() {
-  return useSyncExternalStore(
-    subscribeMockStaffSession,
-    () => readMockStaffSession(),
-    () => null,
-  );
-}
-
 export function StaffAuthProvider({ children }: { children: ReactNode }) {
-  const session = useMockStaffSessionSnapshot();
   const router = useRouter();
+  const [session, setSession] = useState<StaffProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
 
-  const signIn = useCallback((next: MockStaffSession) => {
-    writeMockStaffSession(next);
+  useEffect(() => {
+    const supabase = getSupabaseBrowserClient();
+
+    async function syncFromAuth() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        setSession(null);
+        setLoading(false);
+        return;
+      }
+
+      const profile = await loadStaffProfileForUser(supabase, user.id);
+      if (!profile) {
+        setAuthError(
+          "No staff profile for this account. Ask an owner to create your staff profile.",
+        );
+        setSession(null);
+        await supabase.auth.signOut();
+      } else {
+        setAuthError(null);
+        setSession(profile);
+      }
+      setLoading(false);
+    }
+
+    void syncFromAuth();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(() => {
+      void syncFromAuth();
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const signOut = useCallback(() => {
-    clearMockStaffSession();
+  const signOut = useCallback(async () => {
+    const supabase = getSupabaseBrowserClient();
+    await supabase.auth.signOut();
+    setSession(null);
     router.push("/login");
   }, [router]);
 
+  const clearAuthError = useCallback(() => setAuthError(null), []);
+
   const value = useMemo(
-    () => ({
+    (): StaffAuthContextValue => ({
       session,
-      signIn,
+      loading,
+      authError,
       signOut,
+      clearAuthError,
     }),
-    [session, signIn, signOut],
+    [session, loading, authError, signOut, clearAuthError],
   );
 
   return (
@@ -68,20 +101,28 @@ export function useStaffAuth() {
 }
 
 export function StaffAuthGate({ children }: { children: ReactNode }) {
-  const { session } = useStaffAuth();
+  const { session, loading } = useStaffAuth();
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    if (!session) {
+    if (!loading && !session) {
       router.replace(`/login?next=${encodeURIComponent(pathname)}`);
     }
-  }, [session, router, pathname]);
+  }, [session, loading, router, pathname]);
+
+  if (loading) {
+    return (
+      <div className="flex flex-1 items-center justify-center p-8 text-sm text-charcoal/70">
+        Checking staff session…
+      </div>
+    );
+  }
 
   if (!session) {
     return (
       <div className="flex flex-1 items-center justify-center p-8 text-sm text-charcoal/70">
-        Redirecting to mock sign-in…
+        Redirecting to sign-in…
       </div>
     );
   }

@@ -8,35 +8,51 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { createMockStaffSession, staffRoleLabel } from "@/lib/mock/staff-session";
-import type { StaffRole } from "@/lib/domain/types";
-import { Select } from "@/components/ui/select";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { signIn } = useStaffAuth();
-  const [email, setEmail] = useState("sanju@iturrieta.demo");
-  const [password, setPassword] = useState("demo");
-  const [role, setRole] = useState<StaffRole>("owner");
-  const [emailError, setEmailError] = useState<string | null>(null);
+  const { authError, clearAuthError } = useStaffAuth();
 
-  function onSubmit(e: FormEvent) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  async function onSubmit(e: FormEvent) {
     e.preventDefault();
+    clearAuthError();
+    setSubmitError(null);
+
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       setEmailError("Enter a valid email address");
       return;
     }
     setEmailError(null);
-    signIn(
-      createMockStaffSession({
-        email,
-        displayName: "Sanju Pal",
-        role,
-      }),
-    );
+
+    if (!password.trim()) {
+      setSubmitError("Enter your password");
+      return;
+    }
+
     const next = searchParams.get("next") || "/dashboard";
+    setSubmitting(true);
+    const supabase = getSupabaseBrowserClient();
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
+    setSubmitting(false);
+
+    if (error) {
+      setSubmitError(error.message);
+      return;
+    }
+
     router.push(next);
+    router.refresh();
   }
 
   return (
@@ -44,14 +60,16 @@ export function LoginForm() {
       <CardHeader>
         <CardTitle>Staff sign in</CardTitle>
         <CardDescription>
-          Mock authentication for UI development — no credentials are verified.
+          Sign in with your Iturrieta staff account.
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form className="space-y-4" onSubmit={onSubmit}>
-          <Alert variant="warning">
-            Mock sign-in — no authentication performed. Do not use real passwords.
-          </Alert>
+          {authError ? <Alert variant="warning">{authError}</Alert> : null}
+          {submitError ? <Alert variant="warning">{submitError}</Alert> : null}
+          {searchParams.get("error") === "auth_callback" ? (
+            <Alert variant="warning">Sign-in link expired or invalid. Try again.</Alert>
+          ) : null}
           <div>
             <Label htmlFor="email">Email</Label>
             <Input
@@ -69,21 +87,6 @@ export function LoginForm() {
             ) : null}
           </div>
           <div>
-            <Label htmlFor="role">Role (mock)</Label>
-            <Select
-              id="role"
-              value={role}
-              onChange={(e) => setRole(e.target.value as StaffRole)}
-              className="mt-1"
-            >
-              {(["owner", "manager", "waiter"] as StaffRole[]).map((r) => (
-                <option key={r} value={r}>
-                  {staffRoleLabel(r)}
-                </option>
-              ))}
-            </Select>
-          </div>
-          <div>
             <Label htmlFor="password">Password</Label>
             <Input
               id="password"
@@ -95,8 +98,8 @@ export function LoginForm() {
               required
             />
           </div>
-          <Button type="submit" className="w-full">
-            Continue to dashboard (mock)
+          <Button type="submit" className="w-full" disabled={submitting}>
+            {submitting ? "Signing in…" : "Sign in"}
           </Button>
         </form>
       </CardContent>

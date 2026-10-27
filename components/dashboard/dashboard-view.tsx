@@ -8,7 +8,7 @@ import { RecentActivityStrip } from "@/components/dashboard/recent-activity-stri
 import { FloorPlanWorkspace } from "@/components/floor-plan/floor-plan-workspace";
 import { useStaffDate } from "@/components/staff/staff-workspace";
 import type { ActivityEvent, DashboardStats } from "@/lib/domain/types";
-import { getMockRepositories } from "@/lib/mock/repositories";
+import { getRepositories } from "@/lib/repositories";
 
 export function DashboardView() {
   const { selectedDate } = useStaffDate();
@@ -16,7 +16,7 @@ export function DashboardView() {
   const [activity, setActivity] = useState<ActivityEvent[]>([]);
 
   useEffect(() => {
-    const repos = getMockRepositories();
+    const repos = getRepositories();
     let cancelled = false;
     (async () => {
       const [nextStats, nextActivity] = await Promise.all([

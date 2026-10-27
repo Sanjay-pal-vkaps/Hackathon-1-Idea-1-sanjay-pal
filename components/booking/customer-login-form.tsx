@@ -8,26 +8,39 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DEMO_CUSTOMERS } from "@/lib/mock/fixtures/customers";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export function CustomerLoginForm() {
   const router = useRouter();
-  const { signIn } = useCustomerAuth();
-  const [email, setEmail] = useState(DEMO_CUSTOMERS[0]?.email ?? "");
+  const { clearAuthError, authError, refreshProfile } = useCustomerAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  function onSubmit(e: FormEvent) {
+  async function onSubmit(e: FormEvent) {
     e.preventDefault();
-    const match = DEMO_CUSTOMERS.find(
-      (c) => c.email.toLowerCase() === email.trim().toLowerCase(),
-    );
-    if (!match) {
-      setError("Use a demo guest email from fixtures, e.g. john.miller@example.com");
+    clearAuthError();
+    setError(null);
+    setSubmitting(true);
+
+    const supabase = getSupabaseBrowserClient();
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
+
+    if (signInError) {
+      setSubmitting(false);
+      setError(signInError.message);
       return;
     }
-    setError(null);
-    signIn(match);
+
+    await fetch("/api/customer/sync-profile", { method: "POST" });
+    await refreshProfile();
+    setSubmitting(false);
     router.push("/book/my-bookings");
+    router.refresh();
   }
 
   return (
@@ -36,22 +49,35 @@ export function CustomerLoginForm() {
         <CardTitle>Guest sign in</CardTitle>
       </CardHeader>
       <CardContent>
-        <form className="space-y-4" onSubmit={onSubmit}>
-          <Alert variant="warning">Mock sign-in — no password check performed.</Alert>
+        <form className="space-y-4" onSubmit={(e) => void onSubmit(e)}>
+          {authError ? <Alert variant="warning">{authError}</Alert> : null}
+          {error ? <Alert variant="warning">{error}</Alert> : null}
           <div>
             <Label htmlFor="cust-email">Email</Label>
             <Input
               id="cust-email"
               type="email"
+              autoComplete="username"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="mt-1"
               required
             />
-            {error ? <p className="mt-1 text-xs text-red-700">{error}</p> : null}
           </div>
-          <Button type="submit" className="w-full">
-            Sign in (mock)
+          <div>
+            <Label htmlFor="cust-password">Password</Label>
+            <Input
+              id="cust-password"
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="mt-1"
+              required
+            />
+          </div>
+          <Button type="submit" className="w-full" disabled={submitting}>
+            {submitting ? "Signing in…" : "Sign in"}
           </Button>
         </form>
       </CardContent>

@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import type { Customer, Reservation } from "@/lib/domain/types";
-import { getMockRepositories } from "@/lib/mock/repositories";
+import { getRepositories } from "@/lib/repositories";
 import {
   formatReservationDate,
   formatReservationTimeRange,
@@ -18,7 +18,7 @@ export function CustomerDetailView({ customerId }: { customerId: string }) {
   const [history, setHistory] = useState<Reservation[]>([]);
 
   const load = useCallback(async () => {
-    const repos = getMockRepositories();
+    const repos = getRepositories();
     const guest = await repos.customers.get(customerId);
     setCustomer(guest);
     if (!guest) return;

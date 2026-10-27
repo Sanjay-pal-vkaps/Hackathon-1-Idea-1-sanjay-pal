@@ -20,7 +20,7 @@ export function SectionPlaceholder({
         title={secondary ? "Planned post-MVP UI" : "Coming in a later milestone"}
         description={
           milestone
-            ? `${milestone} will implement this screen with mock data. Navigation and shell are ready in U2.`
+            ? `${milestone} will implement this screen. Navigation and shell are ready.`
             : "This route is reserved for upcoming UI work."
         }
         action={

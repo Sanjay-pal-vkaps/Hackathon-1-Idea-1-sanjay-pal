@@ -14,16 +14,10 @@ import {
 } from "@/lib/constants/table-status";
 import type { FloorMeta, RestaurantTable, TableStatus } from "@/lib/domain/types";
 import { applyReferenceLayoutToTables } from "@/lib/constants/floor-plan-reference-layout";
-import {
-  clearFloorLayoutStorage,
-  hasStoredFloorLayout,
-  mergeStoredLayouts,
-  writeFloorLayoutToStorage,
-} from "@/lib/mock/floor-plan-layout-storage";
-import { getMockRepositories } from "@/lib/mock/repositories";
+import { getRepositories } from "@/lib/repositories";
 import { cn } from "@/lib/utils/cn";
 
-type MockNotice = { message: string; variant: "info" | "success" } | null;
+type WorkspaceNotice = { message: string; variant: "info" | "success" } | null;
 
 const ZOOM_MIN = 0.85;
 const ZOOM_MAX = 1.35;
@@ -44,7 +38,8 @@ export function FloorPlanWorkspace({
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [editMode, setEditMode] = useState(false);
   const [zoom, setZoom] = useState(1);
-  const [notice, setNotice] = useState<MockNotice>(null);
+  const [notice, setNotice] = useState<WorkspaceNotice>(null);
+  const [savingLayout, setSavingLayout] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
 
@@ -60,21 +55,20 @@ export function FloorPlanWorkspace({
 
   const loadFloor = useCallback(
     async (id: string, selectId?: string) => {
-      const repos = getMockRepositories();
+      const repos = getRepositories();
       const [floorList, floorTables] = await Promise.all([
         repos.tables.listFloors(),
         repos.tables.listTables(id),
       ]);
-      const merged = applyReferenceLayoutToTables(
-        hasStoredFloorLayout(id) ? mergeStoredLayouts(floorTables, id) : floorTables,
-      );
       setFloors(floorList);
       setFloorId(id);
-      setTables(merged);
+      setTables(floorTables);
       const pick =
-        selectId && merged.some((t) => t.id === selectId)
+        selectId && floorTables.some((t) => t.id === selectId)
           ? selectId
-          : (merged.find((t) => t.id === defaultTableId)?.id ?? merged[0]?.id ?? null);
+          : (floorTables.find((t) => t.id === defaultTableId)?.id ??
+            floorTables[0]?.id ??
+            null);
       setSelectedId(pick);
       setSheetOpen(false);
     },
@@ -84,7 +78,7 @@ export function FloorPlanWorkspace({
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const repos = getMockRepositories();
+      const repos = getRepositories();
       const floorList = await repos.tables.listFloors();
       if (cancelled || floorList.length === 0) return;
       await loadFloor(floorList[0].id, defaultTableId);
@@ -121,29 +115,48 @@ export function FloorPlanWorkspace({
   };
 
   const handleSaveLayout = async () => {
-    if (!floorId) return;
-    const repos = getMockRepositories();
-    await Promise.all(
-      tables.map((t) => repos.tables.updateTableLayout(t.id, t.layout)),
-    );
-    writeFloorLayoutToStorage(floorId, tables);
-    showNotice(
-      "Mock save — layout kept in memory and localStorage only, not on server.",
-      "success",
-    );
-    setEditMode(false);
+    if (!floorId || savingLayout) return;
+    setSavingLayout(true);
+    try {
+      const repos = getRepositories();
+      await Promise.all(
+        tables.map((t) => repos.tables.updateTableLayout(t.id, t.layout)),
+      );
+      await repos.activity.append({
+        type: "table_status_changed",
+        message: `Floor layout saved (${tables.length} tables)`,
+      });
+      showNotice("Layout saved to Supabase. Refresh to confirm positions.", "success");
+      setEditMode(false);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not save layout";
+      showNotice(message);
+    } finally {
+      setSavingLayout(false);
+    }
   };
 
   const handleResetLayout = async () => {
-    if (!floorId) return;
-    const repos = getMockRepositories();
-    await repos.tables.resetDemoLayout(floorId);
-    clearFloorLayoutStorage(floorId);
-    const floorTables = await repos.tables.listTables(floorId);
-    setTables(applyReferenceLayoutToTables(floorTables));
-    setSelectedId(defaultTableId);
-    showNotice("Reference floor layout restored.");
-    setEditMode(false);
+    if (!floorId || savingLayout) return;
+    setSavingLayout(true);
+    try {
+      const repos = getRepositories();
+      await repos.tables.resetDemoLayout(floorId);
+      const floorTables = await repos.tables.listTables(floorId);
+      const aligned = applyReferenceLayoutToTables(floorTables);
+      await Promise.all(
+        aligned.map((t) => repos.tables.updateTableLayout(t.id, t.layout)),
+      );
+      setTables(aligned);
+      setSelectedId(defaultTableId);
+      showNotice("Reference layout restored and saved.", "success");
+      setEditMode(false);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not reset layout";
+      showNotice(message);
+    } finally {
+      setSavingLayout(false);
+    }
   };
 
   const filterPills: { key: StatusFilter; label: string }[] = [
@@ -164,8 +177,7 @@ export function FloorPlanWorkspace({
 
       {editMode ? (
         <Alert variant="info">
-          Drag table markers to reposition. Save persists to mock storage and
-          localStorage only.
+          Drag table markers to reposition. Save writes layout to Supabase for all staff.
         </Alert>
       ) : null}
 
@@ -191,10 +203,20 @@ export function FloorPlanWorkspace({
                 <Button variant="outline" size="sm" onClick={() => setEditMode(false)}>
                   View
                 </Button>
-                <Button variant="secondary" size="sm" onClick={handleSaveLayout}>
-                  Save layout
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={savingLayout}
+                  onClick={() => void handleSaveLayout()}
+                >
+                  {savingLayout ? "Saving…" : "Save layout"}
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleResetLayout}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={savingLayout}
+                  onClick={() => void handleResetLayout()}
+                >
                   Reset
                 </Button>
               </>
@@ -231,7 +253,7 @@ export function FloorPlanWorkspace({
       {visibleTables.length === 0 ? (
         <EmptyState
           title="No tables match this filter"
-          description="Try another status or reset filters to see the demo floor."
+          description="Try another status or reset filters to see the floor."
           action={
             <Button variant="outline" size="sm" onClick={() => setStatusFilter("all")}>
               Show all tables
@@ -270,6 +292,11 @@ export function FloorPlanWorkspace({
             <TableDetailPanel
               table={selectedTable}
               canUpdateStatus={staffCan("update_table_status")}
+              onTableStatusChange={(updated) => {
+                setTables((prev) =>
+                  prev.map((t) => (t.id === updated.id ? updated : t)),
+                );
+              }}
             />
           </div>
         ) : null}
@@ -288,6 +315,11 @@ export function FloorPlanWorkspace({
               table={selectedTable}
               compact
               canUpdateStatus={staffCan("update_table_status")}
+              onTableStatusChange={(updated) => {
+                setTables((prev) =>
+                  prev.map((t) => (t.id === updated.id ? updated : t)),
+                );
+              }}
               onClose={() => setSheetOpen(false)}
             />
           </div>
@@ -300,6 +332,11 @@ export function FloorPlanWorkspace({
             <TableDetailPanel
               table={selectedTable}
               canUpdateStatus={staffCan("update_table_status")}
+              onTableStatusChange={(updated) => {
+                setTables((prev) =>
+                  prev.map((t) => (t.id === updated.id ? updated : t)),
+                );
+              }}
               onClose={() => setSelectedId(null)}
             />
           ) : null}
