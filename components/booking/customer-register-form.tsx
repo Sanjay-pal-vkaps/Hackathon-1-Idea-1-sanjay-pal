@@ -1,11 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { useCustomerAuth } from "@/components/booking/customer-auth-provider";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -30,7 +30,7 @@ export function CustomerRegisterForm() {
     const nextErrors: typeof errors = {};
     if (!fullName.trim()) nextErrors.fullName = "Name is required";
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      nextErrors.email = "Enter a valid email";
+      nextErrors.email = "Enter a valid email address";
     }
     if (password.length < 8) {
       nextErrors.password = "Password must be at least 8 characters";
@@ -78,69 +78,123 @@ export function CustomerRegisterForm() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Create an account</CardTitle>
-      </CardHeader>
-      <CardContent>
+    <div className="mx-auto w-full max-w-md">
+      <div className="overflow-hidden rounded-3xl border border-border-muted bg-white p-6 sm:p-8 shadow-sm">
+        <div className="mb-6">
+          <div className="inline-flex items-center gap-1.5 rounded-full border border-forest-green/20 bg-forest-green/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-forest-green">
+            <span>🍏</span> Join Iturrieta
+          </div>
+          <h2 className="mt-3 font-serif text-3xl font-medium tracking-tight text-forest-green">
+            Create an account
+          </h2>
+          <p className="mt-1.5 text-sm text-charcoal/65">
+            Register to keep track of your visits and seamlessly manage all your reservations.
+          </p>
+        </div>
+
         <form className="space-y-4" onSubmit={(e) => void onSubmit(e)}>
-          {submitError ? <Alert variant="warning">{submitError}</Alert> : null}
-          <div>
-            <Label htmlFor="reg-name">Full name</Label>
+          {submitError ? (
+            <Alert variant="warning" className="rounded-xl border-amber-300 bg-amber-50 text-xs text-amber-900">
+              {submitError}
+            </Alert>
+          ) : null}
+
+          <div className="space-y-1.5">
+            <Label htmlFor="reg-name" className="text-xs font-semibold uppercase tracking-wider text-charcoal/70">
+              Full Name *
+            </Label>
             <Input
               id="reg-name"
+              placeholder="e.g. Amaia Etxebarria"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className="mt-1"
+              className="rounded-xl border-border-muted py-2.5 text-sm"
               required
             />
             {errors.fullName ? (
-              <p className="mt-1 text-xs text-red-700">{errors.fullName}</p>
+              <p className="text-xs text-red-600">{errors.fullName}</p>
             ) : null}
           </div>
-          <div>
-            <Label htmlFor="reg-email">Email</Label>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="reg-email" className="text-xs font-semibold uppercase tracking-wider text-charcoal/70">
+              Email Address *
+            </Label>
             <Input
               id="reg-email"
               type="email"
+              placeholder="amaia@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-1"
+              className="rounded-xl border-border-muted py-2.5 text-sm"
               required
             />
             {errors.email ? (
-              <p className="mt-1 text-xs text-red-700">{errors.email}</p>
+              <p className="text-xs text-red-600">{errors.email}</p>
             ) : null}
           </div>
-          <div>
-            <Label htmlFor="reg-phone">Phone (optional)</Label>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="reg-phone" className="text-xs font-semibold uppercase tracking-wider text-charcoal/70">
+              Phone Number (Optional)
+            </Label>
             <Input
               id="reg-phone"
+              type="tel"
+              placeholder="+34 600 000 000"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className="mt-1"
+              className="rounded-xl border-border-muted py-2.5 text-sm"
             />
           </div>
-          <div>
-            <Label htmlFor="reg-password">Password</Label>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="reg-password" className="text-xs font-semibold uppercase tracking-wider text-charcoal/70">
+              Password (8+ characters) *
+            </Label>
             <Input
               id="reg-password"
               type="password"
               autoComplete="new-password"
+              placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="mt-1"
+              className="rounded-xl border-border-muted py-2.5 text-sm"
               required
             />
             {errors.password ? (
-              <p className="mt-1 text-xs text-red-700">{errors.password}</p>
+              <p className="text-xs text-red-600">{errors.password}</p>
             ) : null}
           </div>
-          <Button type="submit" className="w-full" disabled={submitting}>
-            {submitting ? "Creating account…" : "Create account"}
+
+          <Button
+            type="submit"
+            className="w-full rounded-xl bg-forest-green hover:bg-forest-green/90 text-warm-ivory py-3 text-sm font-medium shadow-sm transition"
+            disabled={submitting}
+          >
+            {submitting ? (
+              <span className="inline-flex items-center gap-2">
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-warm-ivory border-t-transparent" />
+                Creating account…
+              </span>
+            ) : (
+              "Complete Registration →"
+            )}
           </Button>
         </form>
-      </CardContent>
-    </Card>
+
+        <div className="mt-6 border-t border-border-muted/60 pt-5 text-center text-xs text-charcoal/65">
+          <p>
+            Already have an account?{" "}
+            <Link
+              href="/book/login"
+              className="font-semibold text-apple-copper hover:underline"
+            >
+              Sign in here
+            </Link>
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }

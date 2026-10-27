@@ -16,7 +16,7 @@ export function OperationsTabs() {
 
   return (
     <nav
-      className="flex gap-1 overflow-x-auto border-b border-border-muted pb-px"
+      className="flex gap-7 overflow-x-auto border-b border-[#E2DBD0] pb-px text-sm font-medium"
       aria-label="Operations sections"
     >
       {TABS.map((tab) => {
@@ -30,13 +30,16 @@ export function OperationsTabs() {
             key={tab.href}
             href={tab.href}
             className={cn(
-              "shrink-0 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors",
+              "shrink-0 pb-3 text-sm transition-colors relative",
               active
-                ? "border-apple-copper text-charcoal"
-                : "border-transparent text-charcoal/55 hover:text-charcoal",
+                ? "font-bold text-[#19241C]"
+                : "text-[#19241C]/55 hover:text-[#19241C]",
             )}
           >
             {tab.label}
+            {active ? (
+              <span className="absolute -bottom-px left-0 right-0 h-0.5 bg-[#B95D2B] rounded-full" />
+            ) : null}
           </Link>
         );
       })}

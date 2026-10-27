@@ -47,6 +47,11 @@ export interface ReservationRepository {
 export interface CustomerRepository {
   list(): Promise<Customer[]>;
   get(id: string): Promise<Customer | null>;
+  create(input: {
+    fullName: string;
+    email: string;
+    phone: string;
+  }): Promise<Customer>;
 }
 
 export interface SettingsRepository {

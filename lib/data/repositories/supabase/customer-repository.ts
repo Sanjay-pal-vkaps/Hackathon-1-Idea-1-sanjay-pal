@@ -23,4 +23,37 @@ export class SupabaseCustomerRepository implements CustomerRepository {
     if (error) throw new Error(error.message);
     return data ? mapCustomerRow(data) : null;
   }
+
+  async create(input: {
+    fullName: string;
+    email: string;
+    phone: string;
+  }) {
+    const trimmedEmail = input.email.trim().toLowerCase();
+    const { data: existing } = await this.client
+      .from("customers")
+      .select("*")
+      .eq("email", trimmedEmail)
+      .maybeSingle();
+
+    if (existing) {
+      return mapCustomerRow(existing);
+    }
+
+    const { newId } = await import("@/lib/booking/engine");
+    const id = newId("cust");
+    const { data, error } = await this.client
+      .from("customers")
+      .insert({
+        id,
+        full_name: input.fullName.trim(),
+        email: trimmedEmail,
+        phone: input.phone.trim(),
+      })
+      .select("*")
+      .single();
+
+    if (error) throw new Error(error.message);
+    return mapCustomerRow(data);
+  }
 }
