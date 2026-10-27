@@ -38,6 +38,7 @@ Dialogs: initial focus moves to first focusable control when opened.
 ## QA
 
 - **Release gate (local):** `npm run verify`
+- **API smoke (dev or prod):** `npm run smoke:local` — see [`LOCAL_SIGNOFF.md`](LOCAL_SIGNOFF.md)
 - **Manual smoke (local):** [`SMOKE_CHECKLIST.md`](SMOKE_CHECKLIST.md)
 - **Deploy:** deferred until project complete — see [`DEPLOY.md`](DEPLOY.md) when ready
 - Phase 1 UI sign-off: local **`QA_CHECKLIST.md`**
