@@ -9,7 +9,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/ui/page-header";
-import { MockNotice } from "@/components/reservations/mock-notice";
+import { ActionNotice } from "@/components/reservations/action-notice";
 import { useReservationActions } from "@/components/reservations/use-reservation-actions";
 import { useStaffPermissions } from "@/components/staff/use-staff-permissions";
 import { Alert } from "@/components/ui/alert";
@@ -18,7 +18,7 @@ import {
   RESERVATION_STATUS_LABELS,
 } from "@/lib/constants/reservation-ui";
 import type { Customer, Reservation, RestaurantTable } from "@/lib/domain/types";
-import { getMockRepositories } from "@/lib/mock/repositories";
+import { getRepositories } from "@/lib/repositories";
 import {
   formatReservationDate,
   formatReservationTimeRange,
@@ -55,7 +55,7 @@ export function ReservationDetailView({ reservationId }: ReservationDetailViewPr
   const { can: staffCan } = useStaffPermissions();
 
   const load = useCallback(async () => {
-    const repos = getMockRepositories();
+    const repos = getRepositories();
     const row = await repos.reservations.get(reservationId);
     if (!row) {
       setReservation(null);
@@ -90,7 +90,7 @@ export function ReservationDetailView({ reservationId }: ReservationDetailViewPr
   const timeline = useMemo(() => {
     if (!reservation) return [];
     const items = [
-      { at: reservation.createdAt, label: "Created (demo)" },
+      { at: reservation.createdAt, label: "Created" },
       { at: reservation.updatedAt, label: `Status: ${RESERVATION_STATUS_LABELS[reservation.status]}` },
     ];
     return items;
@@ -115,6 +115,37 @@ export function ReservationDetailView({ reservationId }: ReservationDetailViewPr
 
   async function applyStatus(status: Reservation["status"]) {
     if (!canTransitionReservation(reservation!.status, status)) return;
+
+    if (reservation!.status === "pending" && status === "confirmed") {
+      const res = await fetch(
+        `/api/staff/reservations/${reservation!.id}/approve`,
+        { method: "POST" },
+      );
+      const body = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) {
+        setNotice(body.error ?? "Could not approve — check availability.");
+        return;
+      }
+      setNotice("Confirmed. Guest emailed when configured.");
+      await load();
+      return;
+    }
+
+    if (reservation!.status === "pending" && status === "rejected") {
+      const res = await fetch(
+        `/api/staff/reservations/${reservation!.id}/reject`,
+        { method: "POST" },
+      );
+      const body = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) {
+        setNotice(body.error ?? "Could not reject this request.");
+        return;
+      }
+      setNotice("Rejected. Guest emailed when configured.");
+      await load();
+      return;
+    }
+
     const updated = await updateStatus(reservation!, status);
     setReservation(updated);
   }
@@ -260,9 +291,7 @@ export function ReservationDetailView({ reservationId }: ReservationDetailViewPr
                         .map((id) => tableLabel(tables, id))
                         .join(", ")}
                   {reservation.tableIds.length > 1 ? (
-                    <span className="ml-2 text-xs text-charcoal/55">
-                      (multi-table demo)
-                    </span>
+                    <span className="ml-2 text-xs text-charcoal/55">(combined seating)</span>
                   ) : null}
                 </dd>
               </div>
@@ -302,7 +331,7 @@ export function ReservationDetailView({ reservationId }: ReservationDetailViewPr
         open={cancelOpen}
         onOpenChange={setCancelOpen}
         title="Cancel reservation?"
-        description="Mock cancellation — guest would be notified when messaging is configured."
+        description="Status will update in Supabase. Cancellation emails are not sent yet."
         footer={
           <>
             <Button variant="outline" onClick={() => setCancelOpen(false)}>
@@ -314,7 +343,7 @@ export function ReservationDetailView({ reservationId }: ReservationDetailViewPr
                 void applyStatus("cancelled").then(() => setCancelOpen(false));
               }}
             >
-              Cancel booking (mock)
+              Cancel booking
             </Button>
           </>
         }
@@ -324,13 +353,13 @@ export function ReservationDetailView({ reservationId }: ReservationDetailViewPr
         open={rescheduleOpen}
         onOpenChange={setRescheduleOpen}
         title="Reschedule"
-        description="Adjust start time · duration stays 2h in demo."
+        description="Adjust start time · end time stays 2 hours after start."
         footer={
           <>
             <Button variant="outline" onClick={() => setRescheduleOpen(false)}>
               Close
             </Button>
-            <Button onClick={() => void saveReschedule()}>Save (mock)</Button>
+            <Button onClick={() => void saveReschedule()}>Save changes</Button>
           </>
         }
       >
@@ -349,13 +378,13 @@ export function ReservationDetailView({ reservationId }: ReservationDetailViewPr
         open={tablesOpen}
         onOpenChange={setTablesOpen}
         title="Assign tables"
-        description="Select one or more tables for combined seating (demo)."
+        description="Select one or more tables for combined seating."
         footer={
           <>
             <Button variant="outline" onClick={() => setTablesOpen(false)}>
               Close
             </Button>
-            <Button onClick={() => void saveTables()}>Save assignment (mock)</Button>
+            <Button onClick={() => void saveTables()}>Save assignment</Button>
           </>
         }
       >
@@ -387,7 +416,7 @@ export function ReservationDetailView({ reservationId }: ReservationDetailViewPr
         </ul>
       </Dialog>
 
-      <MockNotice message={notice} onDismiss={() => setNotice(null)} />
+      <ActionNotice message={notice} onDismiss={() => setNotice(null)} />
     </div>
   );
 }

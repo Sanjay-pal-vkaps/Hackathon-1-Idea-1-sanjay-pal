@@ -7,14 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/ui/page-header";
 import type { BookingSettings } from "@/lib/domain/types";
-import { getMockRepositories } from "@/lib/mock/repositories";
+import { getRepositories } from "@/lib/repositories";
 
 export function BookingSettingsForm({ readOnly = false }: { readOnly?: boolean }) {
   const [settings, setSettings] = useState<BookingSettings | null>(null);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    void getMockRepositories()
+    void getRepositories()
       .settings.getBookingSettings()
       .then(setSettings);
   }, []);
@@ -22,7 +22,7 @@ export function BookingSettingsForm({ readOnly = false }: { readOnly?: boolean }
   async function save(e: React.FormEvent) {
     e.preventDefault();
     if (!settings) return;
-    await getMockRepositories().settings.updateBookingSettings(settings);
+    await getRepositories().settings.updateBookingSettings(settings);
     setSaved(true);
     window.setTimeout(() => setSaved(false), 4000);
   }
@@ -37,13 +37,13 @@ export function BookingSettingsForm({ readOnly = false }: { readOnly?: boolean }
         title="Settings"
         description={
           readOnly
-            ? "Read-only for Manager in demo · Owner can edit"
-            : "Booking rules and buffers · mock persistence only"
+            ? "Read-only for Manager · Owner can edit"
+            : "Booking rules and buffers stored in Supabase"
         }
       />
 
       {saved ? (
-        <Alert variant="warning">Mock save — not stored on server</Alert>
+        <Alert variant="info">Settings saved.</Alert>
       ) : null}
 
       <form
@@ -67,7 +67,7 @@ export function BookingSettingsForm({ readOnly = false }: { readOnly?: boolean }
             }
           />
           <p className="text-xs text-charcoal/55">
-            Requests above this limit show as pending in demo flows.
+            Online requests above this limit stay pending until staff approves.
           </p>
         </div>
 
@@ -103,7 +103,7 @@ export function BookingSettingsForm({ readOnly = false }: { readOnly?: boolean }
         </div>
 
         {readOnly ? null : (
-          <Button type="submit">Save settings (mock)</Button>
+          <Button type="submit">Save settings</Button>
         )}
       </form>
     </div>

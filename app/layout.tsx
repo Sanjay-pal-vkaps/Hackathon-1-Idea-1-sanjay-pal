@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
-import { PrototypeBanner } from "@/components/ui/prototype-banner";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -9,9 +8,12 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "Iturrieta — Reservation System",
+  title: {
+    default: "Iturrieta Sagardotegia",
+    template: "%s · Iturrieta",
+  },
   description:
-    "Iturrieta restaurant reservation and table management (UI foundation)",
+    "Basque cider house reservations and restaurant operations — book a table or sign in as staff.",
 };
 
 export default function RootLayout({
@@ -22,7 +24,6 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${geistSans.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-warm-ivory text-charcoal">
-        <PrototypeBanner />
         {children}
       </body>
     </html>

@@ -6,11 +6,11 @@ export default function IntegrationsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Integrations"
-        description="Secondary UI (U8) — providers not wired in prototype"
+        description="Guest booking emails via Resend · WhatsApp and POS not wired yet"
       />
       <EmptyState
-        title="No integrations configured"
-        description="WhatsApp, email, and POS hooks are placeholders. Nothing is sent or paid in this demo."
+        title="Partial integrations"
+        description="Reservation emails send through Resend when RESEND_API_KEY is set (see .env.example). WhatsApp, POS, and payments are still placeholders."
       />
     </div>
   );

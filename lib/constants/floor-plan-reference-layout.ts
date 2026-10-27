@@ -33,12 +33,13 @@ export const REFERENCE_MARKER_BY_NUMBER: Record<
 };
 
 export function referenceCenterForTable(table: RestaurantTable) {
-  const ref = REFERENCE_MARKER_BY_NUMBER[table.number];
-  if (ref) return ref;
+  const cx = table.layout.x + table.layout.width / 2;
+  const cy = table.layout.y + table.layout.height / 2;
+  const hitR = Math.max(table.layout.width, table.layout.height) / 2 + 6;
   return {
-    cx: table.layout.x + table.layout.width / 2,
-    cy: table.layout.y + table.layout.height / 2,
-    hitR: 32,
+    cx,
+    cy,
+    hitR,
     shape: table.shape === "circle" ? ("circle" as const) : ("rect" as const),
   };
 }

@@ -8,7 +8,7 @@ export default function BookLoginPage() {
       <p className="text-center text-sm text-charcoal/65">
         No account?{" "}
         <Link href="/book/register" className="text-apple-copper hover:underline">
-          Register (mock)
+          Register
         </Link>{" "}
         ·{" "}
         <Link href="/book" className="text-apple-copper hover:underline">

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/ui/page-header";
 import { RecentActivityStrip } from "@/components/dashboard/recent-activity-strip";
 import type { ActivityEvent } from "@/lib/domain/types";
-import { getMockRepositories } from "@/lib/mock/repositories";
+import { getRepositories } from "@/lib/repositories";
 
 function relativeTime(iso: string) {
   const diffMs = Date.now() - new Date(iso).getTime();
@@ -20,7 +20,7 @@ export function ActivityFeedView() {
   useEffect(() => {
     let cancelled = false;
     const run = async () => {
-      const rows = await getMockRepositories().activity.listRecent(50);
+      const rows = await getRepositories().activity.listRecent(50);
       if (!cancelled) setEvents(rows);
     };
     void run();
@@ -35,7 +35,7 @@ export function ActivityFeedView() {
     <div className="space-y-6">
       <PageHeader
         title="Live activity"
-        description="Reservation and floor events · mock feed refreshes every 15s"
+        description="Reservation and floor events from Supabase · refreshes every 15s"
       />
       <RecentActivityStrip events={events.slice(0, 8)} />
       <ul className="divide-y divide-border-muted rounded-xl border border-border-muted bg-white">

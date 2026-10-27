@@ -68,20 +68,36 @@ export interface DashboardRepository {
   getStats(forDate: string): Promise<DashboardStats>;
 }
 
+export type GuestBookingResultKind = "confirmed" | "pending" | "unavailable";
+
 export interface PublicBookingRepository {
   listAvailableDates(from: string, to: string): Promise<string[]>;
   listTimeSlots(
     date: string,
     serviceShiftId: string,
+    guestCount?: number,
   ): Promise<PublicTimeSlot[]>;
   suggestTable(
     guestCount: number,
     startAt: string,
     endAt: string,
   ): Promise<string | null>;
+  submitGuestBooking(input: {
+    fullName: string;
+    email: string;
+    phone: string;
+    notes?: string;
+    guestCount: number;
+    startAt: string;
+    endAt: string;
+  }): Promise<{
+    kind: GuestBookingResultKind;
+    reservationId?: string;
+    linkToken?: string;
+  }>;
 }
 
-export interface MockRepositories {
+export interface AppRepositories {
   tables: TableRepository;
   reservations: ReservationRepository;
   customers: CustomerRepository;

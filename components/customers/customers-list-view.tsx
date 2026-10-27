@@ -14,7 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { Customer, Reservation } from "@/lib/domain/types";
-import { getMockRepositories } from "@/lib/mock/repositories";
+import { getRepositories } from "@/lib/repositories";
 
 export function CustomersListView() {
   const router = useRouter();
@@ -24,7 +24,7 @@ export function CustomersListView() {
 
   useEffect(() => {
     void (async () => {
-      const repos = getMockRepositories();
+      const repos = getRepositories();
       const [guests, rows] = await Promise.all([
         repos.customers.list(),
         repos.reservations.list(),
@@ -57,7 +57,7 @@ export function CustomersListView() {
     <div className="space-y-6">
       <PageHeader
         title="Customers"
-        description="Guest directory and booking history · mock data"
+        description="Guest directory and booking history from Supabase"
       />
 
       <Input

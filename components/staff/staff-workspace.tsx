@@ -7,12 +7,10 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { StaffDevPanel } from "@/components/staff/staff-dev-panel";
 import { StaffShell } from "@/components/staff/staff-shell";
 
-/** Aligns with demo reservation fixtures in `lib/mock/fixtures/reservations.ts` */
 function defaultOpsDate() {
-  return "2026-10-16";
+  return new Date().toISOString().slice(0, 10);
 }
 
 type StaffDateContextValue = {
@@ -38,9 +36,6 @@ export function StaffWorkspace({ children }: { children: ReactNode }) {
   return (
     <StaffDateContext.Provider value={value}>
       <StaffShell selectedDate={selectedDate} onDateChange={setSelectedDate}>
-        <div className="mb-4">
-          <StaffDevPanel />
-        </div>
         {children}
       </StaffShell>
     </StaffDateContext.Provider>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { PublicTimeSlot, ServiceShift } from "@/lib/domain/types";
-import { getMockRepositories } from "@/lib/mock/repositories";
+import { getRepositories } from "@/lib/repositories";
 import {
   formatReservationDate,
   formatReservationTimeRange,
@@ -66,9 +66,6 @@ function isValidEmail(value: string) {
 }
 
 export function PublicBookingWizard() {
-  const searchParams = useSearchParams();
-  const scenarioOverride = searchParams.get("scenario") as ResultKind | null;
-
   const [step, setStep] = useState<WizardStep>("intro");
   const [availableDates, setAvailableDates] = useState<string[]>([]);
   const [shifts, setShifts] = useState<ServiceShift[]>([]);
@@ -87,6 +84,7 @@ export function PublicBookingWizard() {
     notes: "",
   });
   const [resultKind, setResultKind] = useState<ResultKind>("confirmed");
+  const [resultLinkToken, setResultLinkToken] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof GuestDetails, string>>>(
     {},
   );
@@ -94,20 +92,22 @@ export function PublicBookingWizard() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const repos = getMockRepositories();
       const from = todayIso();
       const to = addDays(from, 21);
-      const [dates, shiftList, settings] = await Promise.all([
-        repos.publicBooking.listAvailableDates(from, to),
-        repos.settings.listServiceShifts(),
-        repos.settings.getBookingSettings(),
-      ]);
+      const params = new URLSearchParams({ from, to });
+      const res = await fetch(`/api/booking/bootstrap?${params}`);
+      if (!res.ok) return;
+      const body = (await res.json()) as {
+        dates: string[];
+        shifts: ServiceShift[];
+        guestLimit: number;
+      };
       if (cancelled) return;
-      setAvailableDates(dates);
-      setShifts(shiftList);
-      setGuestLimit(settings.onlineGuestLimit);
-      if (dates[0]) setDate(dates[0]);
-      if (shiftList[0]) setServiceShiftId(shiftList[0].id);
+      setAvailableDates(body.dates);
+      setShifts(body.shifts);
+      setGuestLimit(body.guestLimit);
+      if (body.dates[0]) setDate(body.dates[0]);
+      if (body.shifts[0]) setServiceShiftId(body.shifts[0].id);
     })();
     return () => {
       cancelled = true;
@@ -117,14 +117,15 @@ export function PublicBookingWizard() {
   const loadSlots = useCallback(async () => {
     if (!date || !serviceShiftId) return;
     setLoadingSlots(true);
-    const rows = await getMockRepositories().publicBooking.listTimeSlots(
+    const rows = await getRepositories().publicBooking.listTimeSlots(
       date,
       serviceShiftId,
+      guestCount,
     );
     setSlots(rows);
     setSlotId(null);
     setLoadingSlots(false);
-  }, [date, serviceShiftId]);
+  }, [date, serviceShiftId, guestCount]);
 
   useEffect(() => {
     if (step !== "time" && step !== "review" && step !== "result") return;
@@ -132,9 +133,10 @@ export function PublicBookingWizard() {
     (async () => {
       if (!date || !serviceShiftId) return;
       setLoadingSlots(true);
-      const rows = await getMockRepositories().publicBooking.listTimeSlots(
+      const rows = await getRepositories().publicBooking.listTimeSlots(
         date,
         serviceShiftId,
+        guestCount,
       );
       if (cancelled) return;
       setSlots(rows);
@@ -143,7 +145,7 @@ export function PublicBookingWizard() {
     return () => {
       cancelled = true;
     };
-  }, [date, serviceShiftId, step]);
+  }, [date, serviceShiftId, step, guestCount]);
 
   const selectedShift = shifts.find((s) => s.id === serviceShiftId);
   const selectedSlot = slots.find((s) => s.id === slotId) ?? null;
@@ -196,18 +198,32 @@ export function PublicBookingWizard() {
     return Object.keys(errors).length === 0;
   }
 
-  function computeResult(): ResultKind {
-    if (scenarioOverride === "confirmed" || scenarioOverride === "pending" || scenarioOverride === "unavailable") {
-      return scenarioOverride;
-    }
-    if (!selectedSlot || !selectedSlot.available) return "unavailable";
-    if (guestCount > guestLimit) return "pending";
-    return "confirmed";
-  }
+  const [submitting, setSubmitting] = useState(false);
 
-  function submitBooking() {
-    setResultKind(computeResult());
-    setStep("result");
+  async function submitBooking() {
+    if (!selectedSlot) return;
+
+    setSubmitting(true);
+    try {
+      const result = await getRepositories().publicBooking.submitGuestBooking({
+        fullName: guest.fullName,
+        email: guest.email,
+        phone: guest.phone,
+        notes: guest.notes || undefined,
+        guestCount,
+        startAt: selectedSlot.startAt,
+        endAt: selectedSlot.endAt,
+      });
+      setResultKind(result.kind);
+      setResultLinkToken(result.linkToken ?? null);
+      setStep("result");
+    } catch {
+      setResultLinkToken(null);
+      setResultKind("unavailable");
+      setStep("result");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   const detailsValid = useMemo(
@@ -229,7 +245,7 @@ export function PublicBookingWizard() {
 
   function handlePrimary() {
     if (step === "review") {
-      submitBooking();
+      void submitBooking();
       return;
     }
     if (step === "details") {
@@ -245,7 +261,9 @@ export function PublicBookingWizard() {
     step === "intro"
       ? "Book a table"
       : step === "review"
-        ? "Submit request"
+        ? submitting
+          ? "Submitting…"
+          : "Submit request"
         : step === "result"
           ? "Done"
           : "Continue";
@@ -289,15 +307,15 @@ export function PublicBookingWizard() {
           </CardHeader>
           <CardContent className="space-y-4 px-0">
             <Alert variant="info">
-              UI prototype · mock availability · no real reservation is created when you
-              submit.
+              Live availability from the restaurant schedule. Large parties may need staff
+              approval before confirmation.
             </Alert>
           </CardContent>
         </Card>
       ) : null}
 
       {step === "date" ? (
-        <StepCard title="Choose a date" description="Mondays are closed in the demo calendar.">
+        <StepCard title="Choose a date" description="Mondays are closed.">
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
             {calendarDays.map((day) => {
               const open = availableDates.includes(day);
@@ -359,8 +377,8 @@ export function PublicBookingWizard() {
           title="How many guests?"
           description={
             guestCount > guestLimit
-              ? `Parties over ${guestLimit} may need approval (demo pending path).`
-              : `Online bookings up to ${guestLimit} guests can auto-confirm in the demo.`
+              ? `Parties over ${guestLimit} are sent for staff approval.`
+              : `Up to ${guestLimit} guests can be confirmed automatically online.`
           }
         >
           <div className="flex items-center justify-center gap-4 py-4">
@@ -392,7 +410,7 @@ export function PublicBookingWizard() {
       {step === "time" ? (
         <StepCard
           title="Pick a time"
-          description="Some slots are marked fully booked to demo unavailable times."
+          description="Unavailable times are based on live table capacity and existing bookings."
         >
           {loadingSlots ? (
             <p className="text-sm text-charcoal/60">Loading times…</p>
@@ -426,13 +444,13 @@ export function PublicBookingWizard() {
             </ul>
           )}
           <Button type="button" variant="ghost" size="sm" className="mt-2" onClick={() => void loadSlots()}>
-            Refresh slots (mock)
+            Refresh slots
           </Button>
         </StepCard>
       ) : null}
 
       {step === "details" ? (
-        <StepCard title="Your details" description="We will not send real emails in this prototype.">
+        <StepCard title="Your details" description="We use your details only for this reservation.">
           <div className="space-y-4">
             <Field
               id="name"
@@ -490,14 +508,22 @@ export function PublicBookingWizard() {
           </dl>
           {guestCount > guestLimit ? (
             <Alert variant="warning" className="mt-4">
-              Large party — demo will show a pending approval result.
+              Large party — your request will be pending until staff approves.
             </Alert>
           ) : null}
         </StepCard>
       ) : null}
 
       {step === "result" ? (
-        <ResultStep kind={resultKind} guestName={guest.fullName} onRestart={() => setStep("intro")} />
+        <ResultStep
+          kind={resultKind}
+          guestName={guest.fullName}
+          linkToken={resultLinkToken}
+          onRestart={() => {
+            setResultLinkToken(null);
+            setStep("intro");
+          }}
+        />
       ) : null}
 
       {step !== "result" ? (
@@ -511,7 +537,7 @@ export function PublicBookingWizard() {
             <Button
               type="button"
               className="flex-1 md:min-w-[160px]"
-              disabled={step !== "intro" && !canNext}
+              disabled={(step !== "intro" && !canNext) || submitting}
               onClick={() => {
                 if (step === "intro") {
                   setStep("date");
@@ -591,28 +617,31 @@ function ReviewRow({ label, value }: { label: string; value: string }) {
 function ResultStep({
   kind,
   guestName,
+  linkToken,
   onRestart,
 }: {
   kind: ResultKind;
   guestName: string;
+  linkToken: string | null;
   onRestart: () => void;
 }) {
+  const selfServicePath = linkToken ? `/book/link/${encodeURIComponent(linkToken)}` : null;
   const copy =
     kind === "confirmed"
       ? {
           title: "You're all set",
-          body: "Your table request is confirmed in this demo scenario.",
+          body: "Your table is confirmed. We look forward to seeing you.",
           badge: "confirmed" as const,
         }
       : kind === "pending"
         ? {
             title: "Request received",
-            body: "A team member would review large or special requests before confirming.",
+            body: "Our team will review your request and confirm when a table is available.",
             badge: "pending" as const,
           }
         : {
             title: "Time not available",
-            body: "That slot is no longer open in the demo. Try another time or date.",
+            body: "That slot is no longer available. Try another time or date.",
             badge: "pending" as const,
           };
 
@@ -644,9 +673,27 @@ function ResultStep({
         )}
       </CardHeader>
       <CardContent className="space-y-4">
-        <Alert variant="warning">
-          Demo confirmation — reservation not created. No email or SMS was sent.
-        </Alert>
+        {kind !== "unavailable" && selfServicePath ? (
+          <Alert variant="info">
+            We emailed your confirmation when Resend is configured. You can also{" "}
+            <a href={selfServicePath} className="font-medium underline">
+              view your booking online
+            </a>
+            .
+          </Alert>
+        ) : kind !== "unavailable" ? (
+          <Alert variant="info">
+            Booking saved. Check your inbox when email notifications are enabled.
+          </Alert>
+        ) : null}
+        {selfServicePath ? (
+          <Link
+            href={selfServicePath}
+            className="inline-flex h-10 w-full items-center justify-center rounded-lg bg-forest-green px-4 text-sm font-medium text-white hover:bg-forest-green/90 sm:w-auto"
+          >
+            Open my booking link
+          </Link>
+        ) : null}
         <Button type="button" variant="outline" onClick={onRestart}>
           Book another table
         </Button>

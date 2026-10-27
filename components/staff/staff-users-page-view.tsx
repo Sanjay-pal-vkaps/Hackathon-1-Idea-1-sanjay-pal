@@ -1,7 +1,7 @@
 "use client";
 
 import { StaffRouteGuard } from "@/components/staff/staff-route-guard";
-import { StaffUsersStub } from "@/components/staff/staff-users-stub";
+import { StaffUsersView } from "@/components/staff/staff-users-view";
 
 export function StaffUsersPageView() {
   return (
@@ -9,7 +9,7 @@ export function StaffUsersPageView() {
       action="manage_staff_users"
       fallbackTitle="Users & roles — Owner only"
     >
-      <StaffUsersStub />
+      <StaffUsersView />
     </StaffRouteGuard>
   );
 }

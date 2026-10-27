@@ -26,4 +26,4 @@ export function isTerminalReservationStatus(status: ReservationStatus): boolean 
 }
 
 export const TRANSITION_DISABLED_HINT =
-  "Enforced server-side in Phase 2";
+  "This status change is not allowed from the current state.";

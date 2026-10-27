@@ -10,7 +10,7 @@ export default function ReportsPage() {
       />
       <EmptyState
         title="Reports not connected"
-        description="Exports and occupancy analytics will appear here after backend integration. Mock data only in Phase 1."
+        description="Exports and occupancy analytics — planned; operational data is already in Supabase."
       />
     </div>
   );

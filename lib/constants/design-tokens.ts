@@ -8,5 +8,3 @@ export const colors = {
   surfaceMuted: "#EBE6DC",
 } as const;
 
-export const MOCK_DISCLAIMER =
-  "UI prototype · mock data · no real bookings or messages sent";

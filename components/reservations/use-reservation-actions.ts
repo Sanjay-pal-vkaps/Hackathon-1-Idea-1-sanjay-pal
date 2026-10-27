@@ -1,7 +1,7 @@
 "use client";
 
 import type { ActivityEventType, Reservation } from "@/lib/domain/types";
-import { getMockRepositories } from "@/lib/mock/repositories";
+import { getRepositories } from "@/lib/repositories";
 import { useCallback } from "react";
 
 function activityForStatus(
@@ -15,7 +15,7 @@ function activityForStatus(
 
 export function useReservationActions(onNotice: (msg: string) => void) {
   const refreshNotice = useCallback(() => {
-    onNotice("Mock save — not stored on server");
+    onNotice("Saved");
   }, [onNotice]);
 
   const appendActivity = useCallback(
@@ -24,7 +24,7 @@ export function useReservationActions(onNotice: (msg: string) => void) {
       type: ActivityEventType,
       message: string,
     ) => {
-      const repos = getMockRepositories();
+      const repos = getRepositories();
       await repos.activity.append({
         type,
         message,
@@ -37,11 +37,11 @@ export function useReservationActions(onNotice: (msg: string) => void) {
 
   const updateStatus = useCallback(
     async (reservation: Reservation, status: Reservation["status"]) => {
-      const repos = getMockRepositories();
+      const repos = getRepositories();
       const updated = await repos.reservations.updateStatus(reservation.id, status);
       const actType = activityForStatus(status);
       if (actType) {
-        await appendActivity(updated, actType, `${updated.id} → ${status} (demo)`);
+        await appendActivity(updated, actType, `${updated.id} → ${status}`);
       }
       refreshNotice();
       return updated;
@@ -51,12 +51,12 @@ export function useReservationActions(onNotice: (msg: string) => void) {
 
   const updateReservation = useCallback(
     async (id: string, patch: Partial<Reservation>) => {
-      const repos = getMockRepositories();
+      const repos = getRepositories();
       const updated = await repos.reservations.update(id, patch);
       await appendActivity(
         updated,
         "reservation_updated",
-        `Reservation ${updated.id} updated (demo)`,
+        `Reservation ${updated.id} updated`,
       );
       refreshNotice();
       return updated;
@@ -66,12 +66,12 @@ export function useReservationActions(onNotice: (msg: string) => void) {
 
   const createReservation = useCallback(
     async (input: Omit<Reservation, "id" | "createdAt" | "updatedAt">) => {
-      const repos = getMockRepositories();
+      const repos = getRepositories();
       const created = await repos.reservations.create(input);
       await appendActivity(
         created,
         "reservation_created",
-        `New reservation — ${created.guestCount} guests (demo)`,
+        `New reservation — ${created.guestCount} guests`,
       );
       refreshNotice();
       return created;

@@ -4,50 +4,50 @@ import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import type { Customer, Reservation } from "@/lib/domain/types";
-import { MOCK_SELF_SERVICE_TOKENS } from "@/lib/mock/fixtures/self-service";
-import { getMockRepositories } from "@/lib/mock/repositories";
+import type { Reservation } from "@/lib/domain/types";
 import {
   formatReservationDate,
   formatReservationTimeRange,
 } from "@/lib/utils/reservation-format";
 
+type LinkPayload = {
+  reservation: Reservation;
+  guestName: string;
+};
+
 export function SelfServiceLinkView({ token }: { token: string }) {
-  const [reservation, setReservation] = useState<Reservation | null | undefined>(
-    undefined,
-  );
-  const [customer, setCustomer] = useState<Customer | null>(null);
+  const [payload, setPayload] = useState<LinkPayload | null | undefined>(undefined);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      if (token !== MOCK_SELF_SERVICE_TOKENS.valid.token) {
-        if (!cancelled) setReservation(null);
+      const res = await fetch(`/api/booking/link/${encodeURIComponent(token)}`);
+      if (cancelled) return;
+      if (!res.ok) {
+        setPayload(null);
         return;
       }
-      const repos = getMockRepositories();
-      const row = await repos.reservations.get(MOCK_SELF_SERVICE_TOKENS.valid.reservationId);
-      if (cancelled) return;
-      setReservation(row);
-      if (row) setCustomer(await repos.customers.get(row.customerId));
+      setPayload((await res.json()) as LinkPayload);
     })();
     return () => {
       cancelled = true;
     };
   }, [token]);
 
-  if (reservation === undefined) {
+  if (payload === undefined) {
     return <p className="text-sm text-charcoal/70">Loading link…</p>;
   }
 
-  if (!reservation) {
+  if (!payload) {
     return (
       <EmptyState
         title="Link not valid"
-        description="This demo token is expired or unknown. Try token demo-valid-token in U8 docs."
+        description="This link is unknown or expired. Use the link from your booking confirmation or sign in under My bookings."
       />
     );
   }
+
+  const { reservation, guestName } = payload;
 
   return (
     <Card>
@@ -56,12 +56,12 @@ export function SelfServiceLinkView({ token }: { token: string }) {
       </CardHeader>
       <CardContent className="space-y-3 text-sm">
         <Badge variant="reservation" reservationStatus={reservation.status} />
-        <p className="font-medium text-charcoal">{customer?.fullName ?? "Guest"}</p>
+        <p className="font-medium text-charcoal">{guestName}</p>
         <p>{formatReservationDate(reservation.startAt)}</p>
         <p>{formatReservationTimeRange(reservation.startAt, reservation.endAt)}</p>
         <p className="text-charcoal/65">{reservation.guestCount} guests</p>
         <p className="text-xs text-charcoal/55">
-          Self-service link demo — exactly one booking shown for valid token.
+          Reference {reservation.id} · bookmark this page or use the link from your confirmation email.
         </p>
       </CardContent>
     </Card>

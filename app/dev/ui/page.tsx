@@ -1,16 +1,30 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { UiGallery } from "@/app/dev/ui/ui-gallery";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getMockRepositories } from "@/lib/mock/repositories";
+import { mapBookingSettingsRow } from "@/lib/data/mappers";
+import { createSupabaseServiceClient } from "@/lib/supabase/server";
+
+export const dynamic = "force-dynamic";
 
 export default async function DevUiPage() {
-  const repos = getMockRepositories();
-  const [tables, reservations, customers, settings] = await Promise.all([
-    repos.tables.listTables(),
-    repos.reservations.list(),
-    repos.customers.list(),
-    repos.settings.getBookingSettings(),
+  if (process.env.NODE_ENV === "production") {
+    notFound();
+  }
+  const supabase = createSupabaseServiceClient();
+  const [
+    { count: tableCount },
+    { count: reservationCount },
+    { count: customerCount },
+    { data: settingsRow },
+  ] = await Promise.all([
+    supabase.from("restaurant_tables").select("*", { count: "exact", head: true }),
+    supabase.from("reservations").select("*", { count: "exact", head: true }),
+    supabase.from("customers").select("*", { count: "exact", head: true }),
+    supabase.from("booking_settings").select("*").eq("id", 1).maybeSingle(),
   ]);
+
+  const settings = settingsRow ? mapBookingSettingsRow(settingsRow) : null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -18,18 +32,22 @@ export default async function DevUiPage() {
       <div className="mx-auto w-full max-w-5xl px-4 pb-10">
         <Card>
           <CardHeader>
-            <CardTitle>Mock repository snapshot</CardTitle>
+            <CardTitle>Database snapshot</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-charcoal/80">
-            <p>Demo tables: {tables.length}</p>
-            <p>Demo reservations: {reservations.length}</p>
-            <p>Demo customers: {customers.length}</p>
-            <p>
-              Online guest limit (demo): {settings.onlineGuestLimit} · Buffer:{" "}
-              {settings.cleaningBufferMinutes} min · TZ: {settings.timezone}
-            </p>
+            <p>Tables: {tableCount ?? "—"}</p>
+            <p>Reservations: {reservationCount ?? "—"}</p>
+            <p>Customers: {customerCount ?? "—"}</p>
+            {settings ? (
+              <p>
+                Online guest limit: {settings.onlineGuestLimit} · Buffer:{" "}
+                {settings.cleaningBufferMinutes} min · TZ: {settings.timezone}
+              </p>
+            ) : (
+              <p>Booking settings not loaded.</p>
+            )}
             <Link href="/" className="text-apple-copper underline-offset-2 hover:underline">
-              Back to foundation home
+              Back to home
             </Link>
           </CardContent>
         </Card>

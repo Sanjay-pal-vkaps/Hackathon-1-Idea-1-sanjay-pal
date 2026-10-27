@@ -1,6 +1,5 @@
 "use client";
 
-import { RoleSwitcher } from "@/components/staff/role-switcher";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -55,14 +54,11 @@ export function StaffTopbar({
             className="w-auto bg-white"
           />
         </div>
-        <div className="hidden md:block">
-          <RoleSwitcher />
-        </div>
         <button
           type="button"
           className="relative inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border-muted bg-white text-charcoal"
-          aria-label="Sample notifications (demo only — not live)"
-          title="Sample notifications (demo)"
+          aria-label="Notifications (coming soon)"
+          title="Notifications (coming soon)"
         >
           🔔
           <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-apple-copper px-1 text-[10px] font-semibold text-white">

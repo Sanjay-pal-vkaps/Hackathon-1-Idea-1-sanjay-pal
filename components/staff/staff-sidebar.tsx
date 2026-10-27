@@ -3,10 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils/cn";
-import { staffRoleLabel } from "@/lib/mock/staff-session";
+import { staffRoleLabel } from "@/lib/staff/labels";
 import { useStaffAuth } from "@/components/staff/staff-auth-provider";
 import { navItemsForRole } from "@/components/staff/staff-nav-access";
-import { RoleSwitcher } from "@/components/staff/role-switcher";
 import { Button } from "@/components/ui/button";
 
 function NavLink({
@@ -131,7 +130,6 @@ export function StaffSidebar({
               <p className="text-sm font-medium">{session.displayName}</p>
               <p className="text-xs text-white/70">{staffRoleLabel(session.role)}</p>
             </div>
-            <RoleSwitcher compact />
           </div>
         ) : null}
         <Button
@@ -141,9 +139,9 @@ export function StaffSidebar({
             "w-full border-white/30 bg-transparent text-white hover:bg-white/10",
             collapsed && "px-2",
           )}
-          onClick={signOut}
+          onClick={() => void signOut()}
         >
-          {collapsed ? "Out" : "Sign out (mock)"}
+          {collapsed ? "Out" : "Sign out"}
         </Button>
       </div>
     </aside>

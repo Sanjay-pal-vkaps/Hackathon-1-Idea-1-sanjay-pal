@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { useStaffDate } from "@/components/staff/staff-workspace";
 import type { Customer, Reservation, ServiceShift } from "@/lib/domain/types";
-import { getMockRepositories } from "@/lib/mock/repositories";
+import { getRepositories } from "@/lib/repositories";
 import { formatReservationTime } from "@/lib/utils/reservation-format";
 
 export function ScheduleDayView() {
@@ -18,7 +18,7 @@ export function ScheduleDayView() {
   const [customers, setCustomers] = useState<Map<string, Customer>>(new Map());
 
   const load = useCallback(async () => {
-    const repos = getMockRepositories();
+    const repos = getRepositories();
     const [shiftList, rows, guestList] = await Promise.all([
       repos.settings.listServiceShifts(),
       repos.reservations.list({ date: selectedDate }),
@@ -54,7 +54,7 @@ export function ScheduleDayView() {
     <div className="space-y-6">
       <PageHeader
         title="Calendar"
-        description={`Day view · ${selectedDate} · service shifts (mock)`}
+        description={`Day view · ${selectedDate} · live reservations`}
       />
 
       <div className="space-y-4">

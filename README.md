@@ -1,8 +1,8 @@
 # Iturrieta — Restaurant Reservation & Table Management
 
-UI-first implementation for the Iturrieta booking system. **Phase 1 UI (U1–U8) is implemented on mock data.** Backend (Supabase, RLS, real booking engine) is Phase 2+.
+Iturrieta restaurant booking — **Next.js UI + Supabase** (staff auth, live data, guest booking APIs). Database setup: [`supabase/README.md`](supabase/README.md).
 
-See local **`Iturrieta_MILESTONES.md`**, **`PROJECT_BRIEF.md`**, **`QA_CHECKLIST.md`**, and **`UI_REFERENCES/`** (not committed).
+See **`Iturrieta_MILESTONES.md`**, **`DEPLOY.md`**, **`SMOKE_CHECKLIST.md`**, **`REGRESSION.md`**, and local **`PROJECT_BRIEF.md`**, **`QA_CHECKLIST.md`**, **`UI_REFERENCES/`** (not committed).
 
 ## Phase 1 UI — complete
 
@@ -15,20 +15,12 @@ See local **`Iturrieta_MILESTONES.md`**, **`PROJECT_BRIEF.md`**, **`QA_CHECKLIST
 
 **Deferred (not blocking UI sign-off):** floor plan PNG asset swap / hit-map recalibration (`public/floor-plan-bg.png`).
 
-## U6 — Roles & permissions (mock)
+## Roles & permissions
 
-- `lib/permissions/can.ts` — Owner / Manager / Waiter matrix
-- Role picker on **mock staff login** + **live role switcher** (sidebar + top bar)
+- `lib/permissions/can.ts` — Owner / Manager / Waiter matrix (from Supabase `staff_profiles`)
 - Waiter: floor **table status** only; no layout edit, no reservation create/cancel, no `/staff`
 - Manager: settings **read-only**; no Users & Roles nav
 - Direct URL to forbidden routes → `StaffForbidden` empty state
-
-## U7 — UX dev toggles
-
-Staff shell **Dev UI** panel (non-production builds):
-
-- **Slow load (800ms)** — skeleton on `/reservations`
-- **Fail next load** — error alert + **Retry** (clears fail toggle on success)
 
 Empty states: reservations filter, floor status filter, pending queue, reports/integrations.
 
@@ -36,25 +28,20 @@ Form validation: staff login email, guest booking details, customer register, re
 
 Dialogs: initial focus moves to first focusable control when opened.
 
-## U8 — Customer account (mock)
+## Customer account (Supabase I2)
 
-- `/book/register` — mock profile in `localStorage`
-- `/book/login` — demo guest emails from fixtures
-- `/book/account`, `/book/my-bookings`
-- Self-service link: `/book/link/demo-valid-token` → single reservation **res-001**; any other token → invalid empty state
+- `/book/register`, `/book/login` (email + password)
+- `/book/account`, `/book/my-bookings` (RLS — own data only)
+- Apply migration: `npm run db:apply-i2-customer` or SQL Editor (`20251027300000_customer_auth.sql`)
+- **Note:** Staff and guest share one Supabase Auth session per browser
 
 ## QA
 
-Full manual checklist: local **`QA_CHECKLIST.md`** (tick boxes for Phase 1 sign-off).
-
-## Quick smoke (Phase 1A)
-
-1. **Owner:** floor edit → mock save → refresh (localStorage)
-2. **Manager:** approve pending on `/reservations/pending`
-3. **Waiter:** change table status on floor plan; confirm `/reservations/new` blocked
-4. **Guest:** `/book` → confirmed with disclaimer
-5. **Guest:** party &gt; online limit → pending result
-6. **Dev:** enable fail load on `/reservations` → Retry
+- **Release gate (local):** `npm run verify`
+- **API smoke (dev or prod):** `npm run smoke:local` — see [`LOCAL_SIGNOFF.md`](LOCAL_SIGNOFF.md)
+- **Manual smoke (local):** [`SMOKE_CHECKLIST.md`](SMOKE_CHECKLIST.md)
+- **Deploy:** deferred until project complete — see [`DEPLOY.md`](DEPLOY.md) when ready
+- Phase 1 UI sign-off: local **`QA_CHECKLIST.md`**
 
 ## UX checklist (core routes)
 
@@ -63,7 +50,7 @@ Full manual checklist: local **`QA_CHECKLIST.md`** (tick boxes for Phase 1 sign-
 | `/login` | — | — | — | Email |
 | `/dashboard` | shell | — | — | — |
 | `/floor-plan` | load floor | No tables for filter | — | — |
-| `/reservations` | skeleton (dev delay) | No rows | Retry (dev fail) | — |
+| `/reservations` | skeleton | No rows | Retry | — |
 | `/reservations/new` | — | — | — | Guest required |
 | `/reservations/[id]` | header | not found | — | — |
 | `/reservations/pending` | — | No pending | — | — |
@@ -91,10 +78,17 @@ npm run dev
 | `npm run dev` | Development server |
 | `npm run lint` | ESLint |
 | `npm run typecheck` | TypeScript |
+| `npm run test` | Vitest (booking engine) |
 | `npm run build` | Production build |
+| `npm run verify` | All of the above (pre-deploy) |
+| `npm run db:apply-i2-customer` | Customer auth migration |
 
-## Mock data disclaimer
+## Email notifications (Resend)
 
-All data is fictional. The prototype banner and mock toasts/disclaimers apply — no real reservations, auth, email, SMS, or payments in Phase 1.
+Guest emails on book (confirmed/pending), staff approve, and staff reject. Set `RESEND_API_KEY` and `NEXT_PUBLIC_APP_URL` in `.env.local` (see `.env.example`). Without a key, the server logs the message and bookings still succeed.
 
-Swap mock repos in Phase 3 via `getMockRepositories()` → server APIs (`lib/mock/repositories/index.ts`).
+Regenerate demo seed for **today’s service date**: `npm run db:generate-seed`, then re-run `supabase/seed.sql` in the SQL Editor.
+
+## Deferred
+
+SMS and payments are not implemented. Seed data is fictional; use a non-production Supabase project for demos.

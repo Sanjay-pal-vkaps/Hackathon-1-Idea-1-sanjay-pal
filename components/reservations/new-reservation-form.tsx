@@ -8,12 +8,12 @@ import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/ui/page-header";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { MockNotice } from "@/components/reservations/mock-notice";
+import { ActionNotice } from "@/components/reservations/action-notice";
 import { useReservationActions } from "@/components/reservations/use-reservation-actions";
 import { useStaffDate } from "@/components/staff/staff-workspace";
 import { RESERVATION_SOURCE_LABELS } from "@/lib/constants/reservation-ui";
 import type { Customer, ReservationSource } from "@/lib/domain/types";
-import { getMockRepositories } from "@/lib/mock/repositories";
+import { getRepositories } from "@/lib/repositories";
 
 export function NewReservationForm() {
   const router = useRouter();
@@ -25,50 +25,72 @@ export function NewReservationForm() {
   const [source, setSource] = useState<ReservationSource>("walk_in");
   const [notes, setNotes] = useState("");
   const [suggestedTableId, setSuggestedTableId] = useState<string | null>(null);
+  const [suggestedTableLabel, setSuggestedTableLabel] = useState<string | null>(null);
+  const [onlineGuestLimit, setOnlineGuestLimit] = useState(6);
   const [notice, setNotice] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const { createReservation } = useReservationActions(setNotice);
 
   useEffect(() => {
-    void getMockRepositories().customers.list().then(setCustomers);
+    const repos = getRepositories();
+    void Promise.all([
+      repos.customers.list().then(setCustomers),
+      repos.settings.getBookingSettings().then((s) => setOnlineGuestLimit(s.onlineGuestLimit)),
+    ]);
   }, []);
 
   async function suggestTable() {
     const startAt = new Date(`${selectedDate}T${time}:00+02:00`).toISOString();
     const end = new Date(`${selectedDate}T${time}:00+02:00`);
     end.setMinutes(end.getMinutes() + 120);
-    const id = await getMockRepositories().publicBooking.suggestTable(
+    const id = await getRepositories().publicBooking.suggestTable(
       guestCount,
       startAt,
       end.toISOString(),
     );
     setSuggestedTableId(id);
-    if (!id) setNotice("No mock table matched capacity — assign manually on detail.");
+    if (!id) {
+      setSuggestedTableLabel(null);
+      setNotice("No table matched capacity — assign manually on the detail page.");
+      return;
+    }
+    const table = await getRepositories().tables.getTable(id);
+    setSuggestedTableLabel(table ? `Table ${table.number}` : id);
   }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!customerId) return;
-    const startAt = new Date(`${selectedDate}T${time}:00+02:00`).toISOString();
-    const end = new Date(`${selectedDate}T${time}:00+02:00`);
-    end.setMinutes(end.getMinutes() + 120);
-    const created = await createReservation({
-      customerId,
-      guestCount,
-      startAt,
-      endAt: end.toISOString(),
-      status: source === "online" && guestCount > 6 ? "pending" : "confirmed",
-      source,
-      notes: notes || undefined,
-      tableIds: suggestedTableId ? [suggestedTableId] : [],
-    });
-    router.push(`/reservations/${created.id}`);
+    if (!customerId || submitting) return;
+    setSubmitting(true);
+    try {
+      const startAt = new Date(`${selectedDate}T${time}:00+02:00`).toISOString();
+      const end = new Date(`${selectedDate}T${time}:00+02:00`);
+      end.setMinutes(end.getMinutes() + 120);
+      const needsApproval =
+        source === "online" && guestCount > onlineGuestLimit;
+      const created = await createReservation({
+        customerId,
+        guestCount,
+        startAt,
+        endAt: end.toISOString(),
+        status: needsApproval ? "pending" : "confirmed",
+        source,
+        notes: notes || undefined,
+        tableIds: suggestedTableId ? [suggestedTableId] : [],
+      });
+      router.push(`/reservations/${created.id}`);
+    } catch (err) {
+      setNotice(err instanceof Error ? err.message : "Could not create reservation");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="New reservation"
-        description="Walk-in, phone, or WhatsApp entry · uses top-bar date"
+        description="Staff entry · saved to Supabase · uses top-bar date"
         actions={
           <Button variant="outline" onClick={() => router.push("/reservations")}>
             Cancel
@@ -148,21 +170,19 @@ export function NewReservationForm() {
 
         <div className="flex flex-wrap items-center gap-3 rounded-lg bg-surface-muted/40 p-3 text-sm">
           <Button type="button" variant="outline" size="sm" onClick={() => void suggestTable()}>
-            Suggest table (mock)
+            Suggest table
           </Button>
           <span className="text-charcoal/70">
-            {suggestedTableId
-              ? `Suggested: ${suggestedTableId}`
-              : "No table suggested yet"}
+            {suggestedTableLabel ?? "No table suggested yet"}
           </span>
         </div>
 
-        <Button type="submit" disabled={!customerId}>
-          Create reservation (mock)
+        <Button type="submit" disabled={!customerId || submitting}>
+          {submitting ? "Creating…" : "Create reservation"}
         </Button>
       </form>
 
-      <MockNotice message={notice} onDismiss={() => setNotice(null)} />
+      <ActionNotice message={notice} onDismiss={() => setNotice(null)} />
     </div>
   );
 }
