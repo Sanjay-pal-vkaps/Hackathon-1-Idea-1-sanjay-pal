@@ -1,38 +1,55 @@
-import Link from "next/link";
+import { LandingImage } from "@/components/landing/landing-image";
 import { LandingLink } from "@/components/landing/landing-link";
+import { LandingSection } from "@/components/landing/landing-section";
+import { landingImages } from "@/lib/landing/media";
 
 export function LandingVisit() {
   return (
-    <section id="visit" className="scroll-mt-20 border-b border-border-muted py-14 sm:py-16">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <div className="rounded-2xl border border-border-muted bg-white p-6 shadow-sm sm:p-8 lg:flex lg:items-center lg:justify-between lg:gap-10">
-          <div className="max-w-xl">
-            <h2 className="text-2xl font-semibold tracking-tight text-charcoal">Plan your visit</h2>
-            <ul className="mt-4 space-y-2 text-charcoal/75">
-              <li>
-                <span className="font-medium text-charcoal">Location:</span> Aramaio, Basque
-                Country
-              </li>
-              <li>
-                <span className="font-medium text-charcoal">Hours:</span> Available dates and
-                times appear in the booking calendar — always live from our system.
-              </li>
-              <li>
-                <span className="font-medium text-charcoal">Timezone:</span> Europe/Madrid
-              </li>
-            </ul>
-          </div>
-          <div className="mt-6 flex flex-wrap gap-3 lg:mt-0 lg:shrink-0">
-            <LandingLink href="/book">Check availability</LandingLink>
-            <Link
-              href="/book/my-bookings"
-              className="inline-flex h-10 items-center justify-center rounded-lg px-4 text-sm font-medium text-apple-copper hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-apple-copper"
-            >
-              Existing booking
-            </Link>
-          </div>
+    <LandingSection
+      id="visit"
+      eyebrow="Visit us"
+      title="Aramaio, Basque Country"
+      tone="white"
+    >
+      <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
+        <div className="landing-fade-in order-2 space-y-6 lg:order-1">
+          <p className="text-lg leading-relaxed text-charcoal/75">
+            Iturrieta welcomes guests to the heart of the Basque apple country. Use our online
+            reservation system to choose an available date — live times come from the booking
+            calendar, not static hours on this page.
+          </p>
+          <dl className="space-y-4 rounded-2xl border border-border-muted bg-surface-muted/40 p-6 text-sm">
+            <div>
+              <dt className="font-semibold uppercase tracking-wider text-charcoal/45">Address</dt>
+              <dd className="mt-1 text-charcoal/80">
+                Aramaio, Araba / Álava, Basque Country, Spain
+                <span className="mt-1 block text-charcoal/50">
+                  [Street address — confirm with Iturrieta]
+                </span>
+              </dd>
+            </div>
+            <div>
+              <dt className="font-semibold uppercase tracking-wider text-charcoal/45">Contact</dt>
+              <dd className="mt-1 text-charcoal/80">
+                [Phone & email — placeholder until verified]
+              </dd>
+            </div>
+            <div>
+              <dt className="font-semibold uppercase tracking-wider text-charcoal/45">Hours</dt>
+              <dd className="mt-1 text-charcoal/80">
+                See availability when you reserve — Europe/Madrid timezone
+              </dd>
+            </div>
+          </dl>
+          <LandingLink href="/book">Reserve a table</LandingLink>
         </div>
+        <LandingImage
+          src={landingImages.visit}
+          alt="Basque village and green hills"
+          className="landing-fade-in order-1 aspect-[4/3] rounded-2xl lg:order-2 lg:aspect-[5/4]"
+          sizes="50vw"
+        />
       </div>
-    </section>
+    </LandingSection>
   );
 }

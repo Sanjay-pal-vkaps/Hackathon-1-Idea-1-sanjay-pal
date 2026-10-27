@@ -4,45 +4,37 @@ import type { ReactNode } from "react";
 
 const variants = {
   primary:
-    "bg-apple-copper text-white hover:bg-apple-copper/90 focus-visible:ring-apple-copper",
-  secondary:
-    "bg-forest-green text-white hover:bg-forest-green/90 focus-visible:ring-forest-green",
+    "bg-apple-copper text-white shadow-lg shadow-apple-copper/20 hover:bg-apple-copper/92",
+  secondary: "bg-forest-green text-warm-ivory hover:bg-forest-green/90",
   outline:
-    "border border-border-muted bg-white text-charcoal hover:bg-surface-muted",
+    "border border-charcoal/15 bg-transparent text-charcoal hover:border-apple-copper/50 hover:bg-white/80",
   "outline-light":
-    "border border-white/25 bg-transparent text-warm-ivory hover:bg-white/10",
-  ghost: "text-charcoal hover:bg-surface-muted",
-  "ghost-light": "text-warm-ivory/90 hover:text-white hover:bg-white/10",
-} as const;
-
-const sizes = {
-  sm: "h-9 px-3 text-sm",
-  md: "h-10 px-4 text-sm",
-  lg: "h-11 px-5 text-base",
+    "border border-warm-ivory/30 text-warm-ivory hover:bg-warm-ivory/10",
+  ghost: "text-charcoal/80 hover:text-charcoal",
 } as const;
 
 type LandingLinkProps = {
   href: string;
   children: ReactNode;
   variant?: keyof typeof variants;
-  size?: keyof typeof sizes;
   className?: string;
+  large?: boolean;
 };
 
 export function LandingLink({
   href,
   children,
   variant = "primary",
-  size = "md",
   className,
+  large = false,
 }: LandingLinkProps) {
   return (
     <Link
       href={href}
       className={cn(
-        "inline-flex items-center justify-center rounded-lg font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-warm-ivory",
+        "inline-flex items-center justify-center rounded-full font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-apple-copper focus-visible:ring-offset-2 focus-visible:ring-offset-warm-ivory",
+        large ? "h-12 px-8 text-base" : "h-11 px-6 text-sm",
         variants[variant],
-        sizes[size],
         className,
       )}
     >

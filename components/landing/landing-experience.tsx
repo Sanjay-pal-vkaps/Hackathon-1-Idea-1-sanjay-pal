@@ -1,56 +1,58 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { LandingImage } from "@/components/landing/landing-image";
+import { LandingSection } from "@/components/landing/landing-section";
+import { landingImages } from "@/lib/landing/media";
 
-const items = [
+const highlights = [
   {
-    title: "Cider & season",
-    description:
-      "The sagardotegia ritual — orchard cider poured fresh, best enjoyed with good company and Basque fare.",
+    title: "The restaurant",
+    text: "Seasonal Basque cooking — fire, sea, and pasture on every plate.",
   },
   {
-    title: "Shared tables",
-    description:
-      "From intimate pairs to larger gatherings — tell us your party size and we will match the right table.",
+    title: "Cider tasting",
+    text: "Discover natural sagardoa alongside guided pours from the barrel.",
   },
   {
-    title: "Your reservation",
-    description:
-      "Instant confirmation when available, or a quick manager review for special requests. View your booking anytime via your link or account.",
+    title: "The txotx",
+    text: "Stand, taste, and return — the social pulse of the cider house.",
   },
 ] as const;
 
 export function LandingExperience() {
   return (
-    <section
+    <LandingSection
       id="experience"
-      className="scroll-mt-20 border-b border-border-muted bg-surface-muted/40 py-14 sm:py-16"
+      eyebrow="The experience"
+      title="Dine, taste, and share the txotx"
+      description="Restaurant service, cider culture, and the warmth of a true sagardotegia — presented here as demo storytelling."
+      tone="white"
     >
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <div className="max-w-2xl">
-          <h2 className="text-2xl font-semibold tracking-tight text-charcoal sm:text-3xl">
-            The experience
-          </h2>
-          <p className="mt-2 text-charcoal/70">
-            A modern reservation experience rooted in cider-house tradition — demo copy for
-            Iturrieta&apos;s digital guest journey.
-          </p>
+      <div className="grid gap-10 lg:grid-cols-12 lg:gap-8">
+        <LandingImage
+          src={landingImages.dining}
+          alt="Elegant restaurant table setting"
+          className="landing-fade-in aspect-[4/3] rounded-2xl lg:col-span-7 lg:aspect-auto lg:min-h-[420px]"
+          sizes="(max-width: 1024px) 100vw, 58vw"
+        />
+        <div className="flex flex-col justify-center lg:col-span-5">
+          <ul className="space-y-6">
+            {highlights.map((item) => (
+              <li
+                key={item.title}
+                className="landing-fade-in border-b border-border-muted/80 pb-6 last:border-0 last:pb-0"
+              >
+                <h3 className="font-serif text-xl font-medium text-forest-green">{item.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-charcoal/70">{item.text}</p>
+              </li>
+            ))}
+          </ul>
+          <LandingImage
+            src={landingImages.txotx}
+            alt="Guests enjoying a meal together"
+            className="mt-8 aspect-[16/10] rounded-2xl"
+            sizes="(max-width: 1024px) 100vw, 40vw"
+          />
         </div>
-        <ul className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {items.map((item) => (
-            <li key={item.title}>
-              <Card className="h-full border-border-muted bg-white">
-                <CardHeader>
-                  <CardTitle className="text-lg">{item.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-base leading-relaxed text-charcoal/70">
-                    {item.description}
-                  </CardDescription>
-                </CardContent>
-              </Card>
-            </li>
-          ))}
-        </ul>
       </div>
-    </section>
+    </LandingSection>
   );
 }

@@ -1,36 +1,63 @@
 import Link from "next/link";
+import { landingNav } from "@/lib/landing/media";
 
 export function LandingFooter() {
   return (
-    <footer className="border-t border-forest-green/20 bg-forest-green text-warm-ivory">
-      <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+    <footer className="border-t border-border-muted bg-charcoal text-warm-ivory/80">
+      <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6">
+        <div className="grid gap-10 md:grid-cols-[1.2fr_1fr_1fr]">
           <div>
-            <p className="font-semibold tracking-wide">Iturrieta Sagardotegia</p>
-            <p className="mt-1 text-sm text-warm-ivory/75">Demo reservation platform · Aramaio</p>
+            <p className="font-serif text-2xl font-medium text-warm-ivory">Iturrieta</p>
+            <p className="mt-2 text-sm text-warm-ivory/50">Sagardotegia · Aramaio</p>
+            <p className="mt-4 max-w-xs text-xs leading-relaxed text-warm-ivory/40">
+              Demo reservation experience for the Iturrieta project. Not the official iturrieta.eus
+              website.
+            </p>
           </div>
-          <nav
-            className="flex flex-wrap gap-x-6 gap-y-2 text-sm"
-            aria-label="Footer"
-          >
-            <Link href="/book" className="text-warm-ivory/90 hover:text-white hover:underline">
-              Book
-            </Link>
-            <Link
-              href="/book/login"
-              className="text-warm-ivory/90 hover:text-white hover:underline"
-            >
-              Customer sign in
-            </Link>
-            <Link href="/login" className="text-warm-ivory/90 hover:text-white hover:underline">
-              Team sign in
-            </Link>
+          <nav aria-label="Explore">
+            <p className="text-xs font-semibold uppercase tracking-widest text-warm-ivory/45">
+              Explore
+            </p>
+            <ul className="mt-4 space-y-2 text-sm">
+              {landingNav.map((item) => (
+                <li key={item.href}>
+                  <a href={item.href} className="transition hover:text-warm-ivory">
+                    {item.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+          <nav aria-label="Account">
+            <p className="text-xs font-semibold uppercase tracking-widest text-warm-ivory/45">
+              Book & sign in
+            </p>
+            <ul className="mt-4 space-y-2 text-sm">
+              <li>
+                <Link href="/book" className="transition hover:text-warm-ivory">
+                  Reserve a table
+                </Link>
+              </li>
+              <li>
+                <Link href="/book/login" className="transition hover:text-warm-ivory">
+                  Customer sign in
+                </Link>
+              </li>
+              <li>
+                <Link href="/book/register" className="transition hover:text-warm-ivory">
+                  Create account
+                </Link>
+              </li>
+              <li>
+                <Link href="/login" className="transition hover:text-warm-ivory">
+                  Staff sign in
+                </Link>
+              </li>
+            </ul>
           </nav>
         </div>
-        <p className="mt-8 border-t border-white/10 pt-6 text-xs leading-relaxed text-warm-ivory/60">
-          Staff and guest sessions share one browser login with Supabase — use separate browser
-          profiles when testing both. Sample data only; not the verified public website for
-          Iturrieta.
+        <p className="mt-12 border-t border-warm-ivory/10 pt-8 text-center text-xs text-warm-ivory/35">
+          © {new Date().getFullYear()} Iturrieta demo · Basque Orchard Contemporary
         </p>
       </div>
     </footer>

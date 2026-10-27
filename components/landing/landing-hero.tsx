@@ -1,41 +1,46 @@
+import Image from "next/image";
+import { landingImages } from "@/lib/landing/media";
 import { LandingLink } from "@/components/landing/landing-link";
-import { OrchardAccent } from "@/components/landing/orchard-accent";
 
 export function LandingHero() {
   return (
-    <section className="relative overflow-hidden border-b border-border-muted bg-warm-ivory">
-      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-2 lg:items-center lg:py-20">
-        <div>
-          <p className="text-sm font-medium uppercase tracking-widest text-apple-copper">
-            Basque orchard hospitality
+    <section className="relative flex min-h-[92vh] items-end overflow-hidden sm:min-h-[88vh]">
+      <Image
+        src={landingImages.hero}
+        alt="Apple orchard in soft morning light"
+        fill
+        priority
+        className="object-cover"
+        sizes="100vw"
+      />
+      <div
+        className="absolute inset-0 bg-gradient-to-t from-charcoal/85 via-charcoal/45 to-charcoal/25"
+        aria-hidden
+      />
+      <div className="relative mx-auto w-full max-w-7xl px-4 pb-16 pt-32 sm:px-6 sm:pb-24 lg:pb-28">
+        <div className="landing-fade-in max-w-2xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-apple-copper">
+            Aramaio · Basque Country
           </p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight text-charcoal sm:text-5xl">
-            Welcome to the sagardotegia
+          <h1 className="mt-4 font-serif text-4xl font-medium leading-[1.08] tracking-tight text-warm-ivory sm:text-5xl lg:text-6xl">
+            Where the orchard meets the table
           </h1>
-          <p className="mt-4 max-w-xl text-lg leading-relaxed text-charcoal/75">
-            Seasonal cider, shared tables, and the warmth of the Basque countryside — book
-            your visit online in a few steps.
+          <p className="mt-5 max-w-xl text-lg leading-relaxed text-warm-ivory/85 sm:text-xl">
+            A sagardotegia of tradition and conviviality — natural cider, Basque flavours, and
+            the rhythm of the txotx. Reserve your place among the apple trees.
           </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <LandingLink href="/book" size="lg">
-              Book a table
+          <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <LandingLink href="/book" large variant="primary">
+              Reserve a table
             </LandingLink>
-            <LandingLink href="/login" variant="secondary" size="lg">
-              Team sign in
+            <LandingLink href="#story" large variant="outline-light">
+              Discover our story
             </LandingLink>
           </div>
-          <p className="mt-6 max-w-lg text-sm text-charcoal/60">
-            Large groups may receive a pending request until our team confirms availability.
-            Confirmation email sent when notifications are configured.
+          <p className="mt-8 text-xs text-warm-ivory/55">
+            Demo reservation site — imagery illustrative; confirm details with Iturrieta before
+            publication.
           </p>
-        </div>
-        <div className="relative flex justify-center lg:justify-end">
-          <div className="relative w-full max-w-md rounded-2xl border border-border-muted bg-white p-6 shadow-sm">
-            <OrchardAccent className="mx-auto h-auto w-full max-w-[280px]" />
-            <p className="mt-4 text-center text-sm text-charcoal/65">
-              Basque Orchard Contemporary — convivial dining, simple reservations.
-            </p>
-          </div>
         </div>
       </div>
     </section>
