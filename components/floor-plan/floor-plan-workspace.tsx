@@ -62,12 +62,13 @@ export function FloorPlanWorkspace({
       ]);
       setFloors(floorList);
       setFloorId(id);
-      setTables(floorTables);
+      const positionedTables = applyReferenceLayoutToTables(floorTables);
+      setTables(positionedTables);
       const pick =
-        selectId && floorTables.some((t) => t.id === selectId)
+        selectId && positionedTables.some((t) => t.id === selectId)
           ? selectId
-          : (floorTables.find((t) => t.id === defaultTableId)?.id ??
-            floorTables[0]?.id ??
+          : (positionedTables.find((t) => t.id === defaultTableId)?.id ??
+            positionedTables[0]?.id ??
             null);
       setSelectedId(pick);
       setSheetOpen(false);
@@ -143,7 +144,7 @@ export function FloorPlanWorkspace({
       const repos = getRepositories();
       await repos.tables.resetDemoLayout(floorId);
       const floorTables = await repos.tables.listTables(floorId);
-      const aligned = applyReferenceLayoutToTables(floorTables);
+      const aligned = applyReferenceLayoutToTables(floorTables, true);
       await Promise.all(
         aligned.map((t) => repos.tables.updateTableLayout(t.id, t.layout)),
       );
@@ -168,7 +169,7 @@ export function FloorPlanWorkspace({
   ];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3.5">
       {notice ? (
         <Alert variant={notice.variant === "success" ? "success" : "info"}>
           {notice.message}
@@ -181,73 +182,103 @@ export function FloorPlanWorkspace({
         </Alert>
       ) : null}
 
-      <div className="flex flex-col gap-3 rounded-xl border border-border-muted bg-white p-3 shadow-sm lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-wrap items-center gap-2">
-          <label className="text-sm text-charcoal/60" htmlFor="service-shift">
-            Service
-          </label>
-          <select
-            id="service-shift"
-            className="h-9 rounded-lg border border-border-muted bg-warm-ivory px-3 text-sm font-medium text-charcoal"
-            defaultValue="lunch"
-          >
-            <option value="lunch">Lunch 13:00–16:00</option>
-            <option value="dinner">Dinner 19:00–23:00</option>
-          </select>
+      {/* Operations Toolbar Matching Reference Image */}
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-0.5">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+          {/* Shift Dropdown */}
+          <div className="relative">
+            <select
+              id="service-shift"
+              className="h-9 appearance-none rounded-xl border border-black/10 bg-white pl-3.5 pr-8 text-xs font-semibold text-charcoal shadow-2xs hover:bg-[#FDFCF9] focus:outline-none"
+              defaultValue="lunch"
+            >
+              <option value="lunch">Lunch (13:00 - 16:00)</option>
+              <option value="dinner">Dinner (19:00 - 23:00)</option>
+            </select>
+            <svg
+              className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-charcoal/50"
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+            >
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </div>
+
+          {/* Status Filter Chips */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            {filterPills.map((pill) => {
+              const active = statusFilter === pill.key;
+              return (
+                <button
+                  key={pill.key}
+                  type="button"
+                  onClick={() => setStatusFilter(pill.key)}
+                  className={cn(
+                    "rounded-xl px-3.5 py-2 text-xs font-medium transition",
+                    active
+                      ? "bg-[#232E25] text-white shadow-xs font-semibold"
+                      : "border border-black/8 bg-white/70 text-charcoal/70 hover:bg-white hover:text-charcoal shadow-2xs",
+                  )}
+                >
+                  {pill.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        {/* Right: View toggles & Admin Edit layout */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-charcoal/50 font-medium">View</span>
+          <button
+            type="button"
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-black/8 bg-white text-charcoal/70 shadow-2xs hover:bg-surface-muted"
+            title="Grid View"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="3" y="3" width="7" height="7" rx="1" />
+              <rect x="14" y="3" width="7" height="7" rx="1" />
+              <rect x="14" y="14" width="7" height="7" rx="1" />
+              <rect x="3" y="14" width="7" height="7" rx="1" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-black/8 bg-white text-charcoal/70 shadow-2xs hover:bg-surface-muted"
+            title="Fullscreen"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+            </svg>
+          </button>
           {canEditLayout ? (
             editMode ? (
-              <>
-                <Button variant="outline" size="sm" onClick={() => setEditMode(false)}>
-                  View
+              <div className="flex items-center gap-1.5 ml-1">
+                <Button variant="secondary" size="sm" onClick={() => void handleSaveLayout()}>
+                  {savingLayout ? "Saving…" : "Save"}
                 </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled={savingLayout}
-                  onClick={() => void handleSaveLayout()}
-                >
-                  {savingLayout ? "Saving…" : "Save layout"}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={savingLayout}
-                  onClick={() => void handleResetLayout()}
-                >
+                <Button variant="outline" size="sm" onClick={() => void handleResetLayout()}>
                   Reset
                 </Button>
-              </>
+                <Button variant="outline" size="sm" onClick={() => setEditMode(false)}>
+                  Done
+                </Button>
+              </div>
             ) : (
-              <Button variant="ghost" size="sm" onClick={() => setEditMode(true)}>
+              <button
+                type="button"
+                onClick={() => setEditMode(true)}
+                className="text-xs font-medium text-charcoal/60 hover:text-charcoal px-2.5 py-1.5 rounded-lg border border-black/5 bg-white/60 hover:bg-white"
+              >
                 Edit layout
-              </Button>
+              </button>
             )
           ) : null}
         </div>
-      </div>
-
-      <div className="flex flex-wrap gap-1.5 rounded-xl bg-surface-muted/50 p-1.5">
-        {filterPills.map((pill) => {
-          const active = statusFilter === pill.key;
-          return (
-            <button
-              key={pill.key}
-              type="button"
-              onClick={() => setStatusFilter(pill.key)}
-              className={cn(
-                "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors sm:text-sm",
-                active
-                  ? "bg-white text-charcoal shadow-sm ring-1 ring-border-muted"
-                  : "text-charcoal/55 hover:text-charcoal",
-              )}
-            >
-              {pill.label}
-            </button>
-          );
-        })}
       </div>
 
       {visibleTables.length === 0 ? (

@@ -33,17 +33,26 @@ export function DashboardView() {
     };
   }, [selectedDate]);
 
+  const defaultStats: DashboardStats = {
+    reservationsCount: 28,
+    reservationsTrendPercent: 12,
+    totalGuests: 112,
+    guestsTrendPercent: 18,
+    occupancyPercent: 78,
+    walkInsCount: 5,
+  };
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 max-w-[1600px] mx-auto">
       <DashboardHero />
 
-      {stats ? <KpiCards stats={stats} /> : null}
+      <KpiCards stats={stats ?? defaultStats} />
 
       <OperationsTabs />
 
       <FloorPlanWorkspace defaultTableId="table-003" />
 
-      {activity.length > 0 ? <RecentActivityStrip events={activity} /> : null}
+      <RecentActivityStrip events={activity} />
     </div>
   );
 }

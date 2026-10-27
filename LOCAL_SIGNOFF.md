@@ -3,6 +3,20 @@
 **Branch:** `landing-page` (includes full `backend` stack + premium landing)  
 **Date:** 2026-10-27
 
+## Fix `EACCES` on `npm ci` / `next build`
+
+If `node_modules` or `.next` were created as **root** (e.g. Docker or `sudo npm`), fix ownership once:
+
+```bash
+cd /var/www/html/Sanju/Hackathon/Idea1
+sudo chown -R "$USER:$USER" node_modules .next
+rm -rf node_modules .next
+npm ci
+npm run verify
+```
+
+Do **not** run `npm install` with `sudo` in this project.
+
 ## Automated (done)
 
 | Check | Command / result |

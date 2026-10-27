@@ -16,6 +16,7 @@ function defaultOpsDate() {
 type StaffDateContextValue = {
   selectedDate: string;
   setSelectedDate: (date: string) => void;
+  openMobileNav: () => void;
 };
 
 const StaffDateContext = createContext<StaffDateContextValue | null>(null);
@@ -28,14 +29,25 @@ export function useStaffDate() {
 
 export function StaffWorkspace({ children }: { children: ReactNode }) {
   const [selectedDate, setSelectedDate] = useState(defaultOpsDate);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
   const value = useMemo(
-    () => ({ selectedDate, setSelectedDate }),
+    () => ({
+      selectedDate,
+      setSelectedDate,
+      openMobileNav: () => setMobileNavOpen(true),
+    }),
     [selectedDate],
   );
 
   return (
     <StaffDateContext.Provider value={value}>
-      <StaffShell selectedDate={selectedDate} onDateChange={setSelectedDate}>
+      <StaffShell
+        selectedDate={selectedDate}
+        onDateChange={setSelectedDate}
+        mobileNavOpen={mobileNavOpen}
+        setMobileNavOpen={setMobileNavOpen}
+      >
         {children}
       </StaffShell>
     </StaffDateContext.Provider>

@@ -60,6 +60,28 @@ dialog::backdrop {
   animation: landing-fade-up 0.7s ease-out both;
 }
 
+/* Elegant scrollbar for internal tables */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #c7beaf #f0ebe1;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f0ebe1;
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #c7beaf;
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #a99e8d;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .landing-page .landing-fade-in {
     animation: none;

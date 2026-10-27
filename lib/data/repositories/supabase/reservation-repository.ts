@@ -19,7 +19,7 @@ export class SupabaseReservationRepository implements ReservationRepository {
     const { data, error } = await this.client
       .from("reservations")
       .select(RESERVATION_SELECT)
-      .order("start_at");
+      .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
 
     let rows = this.mapRows(data as ReservationRow[]);
@@ -43,6 +43,14 @@ export class SupabaseReservationRepository implements ReservationRepository {
           (r.notes?.toLowerCase().includes(q) ?? false),
       );
     }
+
+    // Always ensure latest created booking is at the top
+    rows.sort((a, b) => {
+      const timeB = new Date(b.createdAt || b.startAt).getTime();
+      const timeA = new Date(a.createdAt || a.startAt).getTime();
+      return timeB - timeA;
+    });
+
     return rows;
   }
 
