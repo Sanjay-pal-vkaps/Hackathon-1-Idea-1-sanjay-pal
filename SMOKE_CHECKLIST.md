@@ -4,11 +4,12 @@ Run after `npm run verify` passes locally, or after deploy to staging/production
 
 **Prerequisites:** `.env.local` (or host env) has `NEXT_PUBLIC_SUPABASE_*` and `SUPABASE_SERVICE_ROLE_KEY`. Migrations applied through I2 (`20251027300000_customer_auth.sql`).
 
+**Quick local API pass:** `npm run dev` then `npm run smoke:local` (see [`LOCAL_SIGNOFF.md`](LOCAL_SIGNOFF.md)).
+
 ## Automated gate
 
-```bash
-npm run verify   # typecheck → lint → test → build
-```
+- [x] `npm run verify` — typecheck → lint → test → build
+- [x] `npm run smoke:local` — health, booking bootstrap/dates, demo link API, key pages (with dev server running)
 
 ## Staff (use a dedicated browser profile or incognito — see note below)
 
@@ -24,7 +25,7 @@ npm run verify   # typecheck → lint → test → build
 - [ ] `/book` — date picker and slots load via `/api/booking/*`
 - [ ] Complete booking with party within online limit → **confirmed** (or pending per rules)
 - [ ] After submit → **View reservation** link works (`/book/link/…`)
-- [ ] `/book/link/demo-valid-token` — shows **res-001** (after I4 migration)
+- [ ] `/book/link/demo-valid-token` — shows **res-001** (after I4 migration / seed)
 - [ ] Party above online limit → **pending** + staff sees it on pending queue
 - [ ] Booking works without customer account
 
@@ -42,8 +43,8 @@ npm run verify   # typecheck → lint → test → build
 
 ## Build / runtime
 
-- [ ] `npm run build` completes with no TypeScript errors
-- [ ] `npm start` — smoke one staff route and `/book` against production build
+- [x] `npm run build` completes with no TypeScript errors (via `npm run verify`)
+- [x] `npm start` — smoke via `SMOKE_BASE_URL=http://localhost:3001 npm run smoke:local` (production build)
 - [ ] `GET /api/health` → `{ "ok": true }` on deployed host
 - [ ] No secrets in client bundle (only `NEXT_PUBLIC_*` in browser)
 

@@ -82,9 +82,11 @@ INSERT INTO public.service_shifts (id, name, start_time, end_time, default_durat
 
 INSERT INTO public.booking_settings (id, online_guest_limit, cleaning_buffer_minutes, timezone) VALUES (1, 6, 15, 'Europe/Madrid');
 
-INSERT INTO public.activity_events (id, type, message, occurred_at, reservation_id, table_id) VALUES ('act-001', 'reservation_created'::public.activity_event_type, 'Sarah Smith', '2026-10-27T06:19:25.945Z'::timestamptz, 'res-014', NULL);
-INSERT INTO public.activity_events (id, type, message, occurred_at, reservation_id, table_id) VALUES ('act-002', 'reservation_updated'::public.activity_event_type, 'Table 10', '2026-10-27T06:09:25.945Z'::timestamptz, 'res-006', 'table-010');
-INSERT INTO public.activity_events (id, type, message, occurred_at, reservation_id, table_id) VALUES ('act-003', 'check_in'::public.activity_event_type, 'Ana Garcia · Table 7', '2026-10-27T05:53:25.945Z'::timestamptz, 'res-002', 'table-007');
-INSERT INTO public.activity_events (id, type, message, occurred_at, reservation_id, table_id) VALUES ('act-004', 'cancellation'::public.activity_event_type, 'Tom Brown · Table 12', '2026-10-27T05:21:25.945Z'::timestamptz, 'res-007', 'table-012');
+INSERT INTO public.activity_events (id, type, message, occurred_at, reservation_id, table_id) VALUES ('act-001', 'reservation_created'::public.activity_event_type, 'Sarah Smith', '2026-10-27T08:10:37.789Z'::timestamptz, 'res-014', NULL);
+INSERT INTO public.activity_events (id, type, message, occurred_at, reservation_id, table_id) VALUES ('act-002', 'reservation_updated'::public.activity_event_type, 'Table 10', '2026-10-27T08:00:37.789Z'::timestamptz, 'res-006', 'table-010');
+INSERT INTO public.activity_events (id, type, message, occurred_at, reservation_id, table_id) VALUES ('act-003', 'check_in'::public.activity_event_type, 'Ana Garcia · Table 7', '2026-10-27T07:44:37.789Z'::timestamptz, 'res-002', 'table-007');
+INSERT INTO public.activity_events (id, type, message, occurred_at, reservation_id, table_id) VALUES ('act-004', 'cancellation'::public.activity_event_type, 'Tom Brown · Table 12', '2026-10-27T07:12:37.789Z'::timestamptz, 'res-007', 'table-012');
+
+INSERT INTO public.reservation_link_tokens (token, reservation_id, expires_at) VALUES ('demo-valid-token', 'res-001', '2099-01-01T00:00:00+00'::timestamptz) ON CONFLICT (token) DO UPDATE SET reservation_id = EXCLUDED.reservation_id, expires_at = EXCLUDED.expires_at;
 
 COMMIT;

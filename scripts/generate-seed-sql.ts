@@ -125,6 +125,12 @@ for (const event of DEMO_ACTIVITY_SEED) {
 }
 
 lines.push("");
+lines.push(
+  `INSERT INTO public.reservation_link_tokens (token, reservation_id, expires_at) VALUES (` +
+    `'demo-valid-token', 'res-001', '2099-01-01T00:00:00+00'::timestamptz) ` +
+    `ON CONFLICT (token) DO UPDATE SET reservation_id = EXCLUDED.reservation_id, expires_at = EXCLUDED.expires_at;`,
+);
+lines.push("");
 lines.push("COMMIT;");
 lines.push("");
 

@@ -31,6 +31,10 @@ Or locally (needs `SUPABASE_DB_URL` in `.env.local`):
 ```bash
 npm run db:apply-b1          # B1 + seed
 npm run db:apply-b2-rls      # B2 policies only
+npm run db:apply-i2-customer # I2 guest accounts
+npm run db:apply-i4-links    # I4 self-service links (+ demo token)
+npm run db:generate-seed     # refresh dates to today (Europe/Madrid)
+npm run db:apply-seed        # reload demo data (includes demo-valid-token → res-001)
 ```
 
 ## B2 — First staff user
